@@ -4,6 +4,7 @@
   :min-lein-version "2.0.0"
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [compojure "1.3.1"]
+                 [instaparse "1.4.1"] ;; needed to prevent arity exception on StringReader
                  [ring/ring-defaults "0.1.2"]
                  [com.draines/postal "1.11.3"]]
   :plugins [[lein-ring "0.8.13"]]

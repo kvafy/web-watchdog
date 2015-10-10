@@ -1,65 +1,62 @@
 (ns web-watchdog.core
-  (:require [clojure.java.io :as io]
-            [postal.core])
+  (:require [web-watchdog.persistence :as persistence]
+            [web-watchdog.networking :as networking]
+            [web-watchdog.utils :as utils])
   (:gen-class))
 
-(def sites
-  [{:title      "European LISP Symposium"
-    :url        "http://www.european-lisp-symposium.org/content-programme-full.html"
-    :matcher-re #"(?s).*"
-    :emails     ["chaloupka.david@gmail.com"]}
-   {:title      "Mestske byty Brno-stred"
-    :url        "http://www.brno-stred.cz/uredni-deska/pronajmy-bytu"
-    :matcher-re #"(?s)<h2>Pron.*?</ul>"
-    :emails     ["chaloupka.david@gmail.com" "m.svihalkova@gmail.com"]}])
 
-(def check-interval-ms (* 1000 60 60))
+(def app-state (atom nil))
 
-;; map site -> string last matched (nil on start up)
-(def check-results (ref {}))
+(def default-state
+  {:sites []
+   :config {:check-interval-ms (* 1000 60 60)}})
 
-(defn log [msg]
-  (printf "[%s] %s\n" (java.util.Date.) msg)
-  (flush))
 
-(defn download [url]
-  (let [cm (java.net.CookieManager.)]
-    (java.net.CookieHandler/setDefault cm))
-  (with-open [in (io/reader url)]
-    (slurp in)))
+(defn detect-site-changes [_ _ old-state new-state]
+  (when (not= old-state new-state)
+    (dorun
+     (map (fn [old-site new-site]
+            (let [old-hash (get-in old-site [:state :content-hash])
+                  new-hash (get-in new-site [:state :content-hash])]
+              (when (and old-hash (not= old-hash new-hash))
+                (utils/log (format "Change detected at [%s]" (:title new-site)))
+                (networking/notify-site-updated! new-site))))
+          (get-in old-state [:sites])
+          (get-in new-state [:sites])))))
 
-(defn- notify-update! [site]
-  (let [subject (format "[Web-watchdog] %s" (:title site))
-        body    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))]
-    (postal.core/send-message {:from "mailer@webwatchdog.com"
-                               :to (:emails site)
-                               :subject subject
-                               :body body})))
+(defn persist-new-state [_ _ old-state new-state] 
+  (when (not= old-state new-state)
+    (persistence/save-state! new-state)))
 
-(defn check-site [site prev-result]
-  (log (format "Checking site [%s]" (:url site)))
-  (let [cur-result (->> (:url site)
-                        download
-                        (re-find (:matcher-re site)))]
-    (when (and prev-result (not= prev-result cur-result))
-      (log (format "Change detected at [%s]" (:title site)))
-      (notify-update! site))
-    cur-result))
+(defn check-site [site]
+  (utils/log (format "Checking site [%s]" (:url site)))
+  (let [prev-hash (-> site :state :content-hash)
+        cur-data  (-> site :url networking/download)]
+    (if cur-data
+      (assoc-in site
+                [:state :content-hash]
+                (->> cur-data (re-find (:re-pattern site)) (utils/md5)))
+      ; in case of a download error, remember the last good :content-hash
+      site)))
 
-(defn start-checking-loop! []
+(defn check-sites [sites]
+  (reduce (fn [res-sites site]
+            (conj res-sites (check-site site)))
+          []
+          sites))
+
+(defn initialize []
+  (reset! app-state (or (persistence/load-state) default-state))
+  (add-watch app-state :watch-detect-site-changes detect-site-changes)
+  (add-watch app-state :watch-persist-new-state persist-new-state))
+
+(defn run-checking-loop! []
   (loop []
-    (dosync
-     (let [new-results
-           (reduce (fn [res site]
-                     (let [prev-result (res site)
-                           cur-result  (check-site site prev-result)]
-                       (assoc res site cur-result)))
-                   @check-results
-                   sites)]
-       (ref-set check-results new-results)
-       (Thread/sleep check-interval-ms)
-       (recur)))))
+    (swap! app-state update-in [:sites] check-sites)
+    (Thread/sleep (get-in @app-state [:config :check-interval-ms]))
+    (recur)))
 
 (defn -main [& args]
-  (start-checking-loop!))
+  (initialize)
+  (run-checking-loop!))
 
