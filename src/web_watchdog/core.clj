@@ -53,7 +53,7 @@
           []
           sites))
 
-(defn initialize []
+(defn initialize! []
   (reset! app-state (or (persistence/load-state) default-state))
   (add-watch app-state :on-app-state-change on-app-state-change))
 
@@ -64,6 +64,5 @@
     (recur)))
 
 (defn -main [& args]
-  (initialize)
+  (initialize!)
   (run-checking-loop!))
-

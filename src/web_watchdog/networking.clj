@@ -11,7 +11,6 @@
     (catch java.io.IOException ex nil)))
 
 (defn notify-site-changed! [site]
-  (println "original notify-site-changed!")
   (when (not-empty (:emails site))
     (let [subject (format "[Web-watchdog] %s" (:title site))
           body    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))]
