@@ -18,14 +18,19 @@
                vals
                (filter #(= 2 (count %)))))
 
+(defn site-change-type [old-site new-site]
+  (let [old-hash (get-in old-site [:state :content-hash])
+        new-hash (get-in new-site [:state :content-hash])]
+    (cond
+      (and old-hash new-hash (not= old-hash new-hash)) :content-changed
+      :else nil)))
+
 (defn notify-if-sites-changed! [old-state new-state]
   (dorun
    (map (fn [[old-site new-site]]
-          (let [old-hash (get-in old-site [:state :content-hash])
-                new-hash (get-in new-site [:state :content-hash])]
-            (when (and old-hash (not= old-hash new-hash))
-              (utils/log (format "Change detected at [%s]" (:title new-site)))
-              (networking/notify-site-changed! new-site))))
+          (when-let [change-type (site-change-type old-site new-site)]
+            (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
+            (networking/notify-site-changed! new-site change-type)))
         (sites-in-both-states old-state new-state))))
 
 (defn persist-new-state! [old-state new-state]
