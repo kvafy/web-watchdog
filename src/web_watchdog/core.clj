@@ -8,7 +8,13 @@
 (def app-state (atom nil))
 
 (def default-state
-  {:sites []
+  {:sites [(comment
+             ;; This is how a site is represented.
+             {:title      "European LISP Symposium"
+              :url        "http://www.european-lisp-symposium.org"
+              :re-pattern #"(?s).*"
+              :emails     ["happy@lisper.com"]
+              :state      {:content-hash nil}})]
    :config {:check-interval-ms (* 1000 60 60)}})
 
 
@@ -69,5 +75,6 @@
     (recur)))
 
 (defn -main [& args]
+  (utils/log "Application starts")
   (initialize!)
   (run-checking-loop!))
