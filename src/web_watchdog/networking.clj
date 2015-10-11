@@ -10,10 +10,12 @@
       (slurp in))
     (catch java.io.IOException ex nil)))
 
-(defn notify-site-updated! [site]
-  (let [subject (format "[Web-watchdog] %s" (:title site))
-        body    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))]
-    (postal.core/send-message {:from "mailer@webwatchdog.com"
-                               :to (:emails site)
-                               :subject subject
-                               :body body})))
+(defn notify-site-changed! [site]
+  (println "original notify-site-changed!")
+  (when (not-empty (:emails site))
+    (let [subject (format "[Web-watchdog] %s" (:title site))
+          body    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))]
+      (postal.core/send-message {:from "mailer@webwatchdog.com"
+                                 :to (:emails site)
+                                 :subject subject
+                                 :body body}))))
