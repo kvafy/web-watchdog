@@ -48,7 +48,6 @@
       (f old-state new-state))))
 
 (defn check-site [site]
-  (utils/log (format "Checking site [%s]" (:url site)))
   (let [prev-hash (-> site :state :content-hash)
         cur-data  (-> site :url networking/download)]
     (if cur-data
@@ -70,11 +69,12 @@
 
 (defn run-checking-loop! []
   (loop []
+    (utils/log "Checking all sites")
     (swap! app-state update-in [:sites] check-sites)
     (Thread/sleep (get-in @app-state [:config :check-interval-ms]))
     (recur)))
 
 (defn -main [& args]
-  (utils/log "Application starts")
+  (utils/log "Application starting")
   (initialize!)
   (run-checking-loop!))

@@ -1,6 +1,7 @@
 (ns web-watchdog.networking
   (:require [clojure.java.io :as io]
-            [postal.core]))
+            [postal.core]
+            [web-watchdog.utils :as utils]))
 
 (defn download [url]
   (let [cm (java.net.CookieManager.)]
@@ -8,7 +9,9 @@
   (try
     (with-open [in (io/reader url)]
       (slurp in))
-    (catch java.io.IOException ex nil)))
+    (catch java.io.IOException ex
+      (utils/log (format "Failed to download [%s] due to: %s" url (.toString ex)))
+      nil)))
 
 (defn notify-site-changed! [site change-type]
   (when (not-empty (:emails site))
