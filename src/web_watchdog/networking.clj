@@ -18,7 +18,9 @@
     (let [subject (format "[Web-watchdog] %s" (:title site))
           body    (condp = change-type
                     :content-changed
-                    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site)))]
+                    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))
+                    :site-failing
+                    (format "Site %s at %s is failing." (:title site) (:url site)))]
       (postal.core/send-message {:from "mailer@webwatchdog.com"
                                  :to (:emails site)
                                  :subject subject

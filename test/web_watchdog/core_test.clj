@@ -11,22 +11,27 @@
 (defn site-emails [label]
   [(format "%s@watcher.com" label)])
 
-(defn site [label content-hash]
+(defn site [label content-hash fail-counter]
   {:title      (site-title label)
    :url        (site-url label)
    :re-pattern #"(?s).*"
    :emails     (site-emails label)
-   :state      {:content-hash content-hash}})
+   :state      {:content-hash content-hash
+                :fail-counter fail-counter}})
 
 (defn set-sites [app-state sites]
   (assoc-in app-state [:sites] sites))
 
 
-(let [siteA0 (site "a" nil)
-      siteA1 (site "a" "hashA1")
-      siteA2 (site "a" "hashA2")
-      siteB0 (site "b" nil)
-      siteB1 (site "b" "hashB1")]
+(let [siteA0 (site "a" nil 0)
+      siteA1 (site "a" "hashA1" 0)
+      siteA2 (site "a" "hashA2" 0)
+      siteB0 (site "b" nil 0)
+      siteB1 (site "b" "hashB1" 0)
+      ; failing site
+      siteF0 (site "f" nil 0)
+      siteF1 (site "f" nil 1)
+      siteF2 (site "f" nil 2)]
 
   (deftest sites-in-both-states-test
     (testing "Set of sites remains the same"
@@ -54,7 +59,13 @@
     (testing "Site content goes missing, consider as no change."
       (is (= nil (site-change-type siteA1 siteA0))))
     (testing "Content actually changes, change detected."
-      (is (= :content-changed (site-change-type siteA1 siteA2))))))
+      (is (= :content-changed (site-change-type siteA1 siteA2))))
+    (testing "Site becomes unavailable, change detected."
+      (is (= :site-failing (site-change-type siteF0 siteF1))))
+    (testing "Site stays unavailable, consider as no change."
+      (is (= nil (site-change-type siteF1 siteF2))))
+    (testing "Site becomes available, consider as no change."
+      (is (= nil (site-change-type siteF2 siteF0))))))
 
 (deftest handle-sites-changed-test
   (let [sent-emails (atom nil)
@@ -63,14 +74,32 @@
     (with-redefs [postal.core/send-message
                   (fn [{:keys [to]}] (swap! sent-emails into to))]
       (testing "mail not sent if the content becomes available for the first time"
-        (let [old-state (set-sites default-state [(site "a" nil)])
-              new-state (set-sites default-state [(site "a" "a-hash")])]
+        (let [old-state (set-sites default-state [(site "a" nil 0)])
+              new-state (set-sites default-state [(site "a" "a-hash" 0)])]
           (setup!)
           (notify-if-sites-changed! old-state new-state)
           (is (= #{} @sent-emails))))
       (testing "mail sent if the content changes"
-        (let [old-state (set-sites default-state [(site "a" "old-hash")])
-              new-state (set-sites default-state [(site "a" "new-hash")])]
+        (let [old-state (set-sites default-state [(site "a" "old-hash" 0)])
+              new-state (set-sites default-state [(site "a" "new-hash" 0)])]
           (setup!)
           (notify-if-sites-changed! old-state new-state)
-          (is (= (set (site-emails "a")) @sent-emails)))))))
+          (is (= (set (site-emails "a")) @sent-emails))))
+      (testing "mail sent if site becomes unavailable"
+        (let [old-state (set-sites default-state [(site "a" "constant-hash" 0)])
+              new-state (set-sites default-state [(site "a" "constant-hash" 1)])]
+          (setup!)
+          (notify-if-sites-changed! old-state new-state)
+          (is (= (set (site-emails "a")) @sent-emails))))
+      (testing "mail not sent if site stays unavailable"
+        (let [old-state (set-sites default-state [(site "a" "constant-hash" 1)])
+              new-state (set-sites default-state [(site "a" "constant-hash" 2)])]
+          (setup!)
+          (notify-if-sites-changed! old-state new-state)
+          (is (= #{} @sent-emails))))
+      (testing "mail not sent if site becomes available and content doesn't change"
+        (let [old-state (set-sites default-state [(site "a" "constant-hash" 20)])
+              new-state (set-sites default-state [(site "a" "constant-hash" 0)])]
+          (setup!)
+          (notify-if-sites-changed! old-state new-state)
+          (is (= #{} @sent-emails)))))))

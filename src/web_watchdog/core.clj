@@ -14,7 +14,9 @@
               :url        "http://www.european-lisp-symposium.org"
               :re-pattern #"(?s).*"
               :emails     ["happy@lisper.com"]
-              :state      {:content-hash nil}})]
+              :state      {:content-hash nil
+                           :fail-counter 0}})]
+   ;; Global configuration.
    :config {:check-interval-ms (* 1000 60 60)}})
 
 
@@ -25,10 +27,13 @@
                (filter #(= 2 (count %)))))
 
 (defn site-change-type [old-site new-site]
-  (let [old-hash (get-in old-site [:state :content-hash])
-        new-hash (get-in new-site [:state :content-hash])]
+  (let [hash  (get-in old-site [:state :content-hash])
+        hash' (get-in new-site [:state :content-hash])
+        fails  (get-in old-site [:state :fail-counter])
+        fails' (get-in new-site [:state :fail-counter])]
     (cond
-      (and old-hash new-hash (not= old-hash new-hash)) :content-changed
+      (and hash hash' (not= hash hash')) :content-changed
+      (and (zero? fails) (pos? fails'))  :site-failing
       :else nil)))
 
 (defn notify-if-sites-changed! [old-state new-state]
@@ -44,18 +49,23 @@
 
 (defn on-app-state-change [_ _ old-state new-state]
   (when (not= old-state new-state)
-    (doseq [f [notify-if-sites-changed! persist-new-state!]]
-      (f old-state new-state))))
+    (let [listeners [notify-if-sites-changed! persist-new-state!]]
+      (doseq [f listeners]
+        (f old-state new-state)))))
 
 (defn check-site [site]
   (let [prev-hash (-> site :state :content-hash)
         cur-data  (-> site :url networking/download)]
     (if cur-data
-      (assoc-in site
-                [:state :content-hash]
-                (->> cur-data (re-find (:re-pattern site)) (utils/md5)))
-      ; in case of a download error, remember the last good :content-hash
-      site)))
+      (let [cur-hash (->> cur-data
+                          (re-find (:re-pattern site))
+                          utils/md5)]
+        (-> site
+            (assoc-in [:state :content-hash] cur-hash)
+            (assoc-in [:state :fail-counter] 0)))
+      (-> site
+          ; remember the last good :content-hash
+          (update-in [:state :fail-counter] inc)))))
 
 (defn check-sites [sites]
   (reduce (fn [res-sites site]
