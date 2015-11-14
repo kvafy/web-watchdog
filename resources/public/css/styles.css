@@ -1,0 +1,4 @@
+#content {transition: all 0.3s;}
+#content dd {margin-left: 1em;}
+thead td {font-weight: bold;}
+.site-params dt {font-weight: bold; font-style: italic;}

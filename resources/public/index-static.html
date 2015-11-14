@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Web-watchdog</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  </head>
+  
+  <body>
+    <header id="top" class="container-fluid">
+      <div id="my-navbar" class="navbar navbar-inverse navbar-static-top">
+        <div class="navbar-header">
+          <a class="navbar-brand">Web-watchdog</a>
+        </div>
+      </div>
+    </header>
+    
+    <div id="content" class="container">
+
+      <div class="row">
+        <div class="col-xs-12">
+          <h1>Checked sites</h1>
+          <!-- Table is styled with Bootstrap classes and has Bootstrap Popover plug-in. -->
+          <table class="table table-hover table-striped">
+            <thead>
+              <tr>
+                <td>Name</td>
+                <td>Last change</td>
+                <td>Status</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-toggle="popover" data-placement="bottom" data-html="true"
+                  title="Lisp enhusiasts"
+                  data-content="<dl>
+                                  <dt>Notifications sent to</dt><dd>happy@lisper.com, you@lisper.com</dd>
+                                  <dt>Regexp (Java)</dt><dd>.*</dd>
+                               </dl>">
+                <td><a href="#">Lisp enthusiasts</a></td>
+                <td>17:23 on 14.11.2015</td>
+                <td class="text-success"><span class="glyphicon glyphicon-ok-sign" title="Last check succeeded"/></td>
+              </tr>
+              <tr data-toggle="popover" data-placement="bottom" data-html="true"
+                  title="Failing site"
+                  data-content="<dl>
+                                  <dt>Notifications sent to</dt><dd>me@gmail.com</dd>
+                                  <dt>Regexp (Java)</dt><dd>(?s).*</dd>
+                               </dl>">
+                <td><a href="#">Failing site</a></td>
+                <td>0:30 on 27.1.2015</td>
+                <td class="text-danger"><span class="glyphicon glyphicon-exclamation-sign" title="Last check failed"/></td>
+              </tr>
+              <tr data-toggle="popover" data-placement="bottom" data-html="true"
+                  title="Site not checked yet"
+                  data-content="<dl>
+                                  <dt>Notifications sent to</dt><dd>somebody@yahoo.com</dd>
+                                  <dt>Regexp (Java)</dt><dd>(?s).*</dd>
+                               </dl>">
+                <td><a href="#">Site not checked yet</a></td>
+                <td></td>
+                <td class="text-muted"><span class="glyphicon glyphicon-question-sign" title="No check performed yet"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="col-xs-12">
+        <h1>Global configuration</h1>
+        <dl>
+          <dt>Check interval</dt>
+          <dd>1 day(s)</dd>
+        </dl>
+      </div>
+    
+    </div> <!-- #container -->
+    
+    <script>
+      // Initialize Bootstrap Popover plug-in
+      $(document).ready(function() {
+        $("[data-toggle='popover']").popover();
+      });
+    </script>
+  
+  </body>
+  
+</html>
+
