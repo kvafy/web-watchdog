@@ -56,21 +56,15 @@
         (f old-state new-state)))))
 
 (defn check-site [site]
-  (let [[data error]  (-> site :url networking/download)
-        ; save the current time, right after the data is downloaded
-        site (assoc-in site [:state :last-check-utc] (utils/now-utc))
-        ; update the error message (may be nil)
-        site (assoc-in site [:state :last-error-msg] error)]
-    (if-not error
-      (let [data-hash (->> data
-                           (re-find (:re-pattern site))
-                           utils/md5)]
-        (-> site
-            (assoc-in [:state :content-hash] data-hash)
-            (assoc-in [:state :fail-counter] 0)))
-      (-> site
-          ; remember the last good :content-hash
-          (update-in [:state :fail-counter] inc)))))
+  (let [[data error]  (-> site :url networking/download)]
+    (cond-> site
+      true        (assoc-in [:state :last-check-utc] (utils/now-utc))
+      true        (assoc-in [:state :last-error-msg] error)
+      (not error) (assoc-in [:state :content-hash] (->> data
+                                                        (re-find (:re-pattern site))
+                                                        utils/md5))
+      (not error) (assoc-in [:state :fail-counter] 0)
+      error       (update-in [:state :fail-counter] inc))))
 
 (defn check-sites [sites]
   (reduce (fn [res-sites site]
