@@ -8,10 +8,11 @@
     (java.net.CookieHandler/setDefault cm))
   (try
     (with-open [in (io/reader url)]
-      (slurp in))
-    (catch java.io.IOException ex
-      (utils/log (format "Failed to download [%s] due to: %s" url (.toString ex)))
-      nil)))
+      [(slurp in) nil])
+    (catch java.lang.Exception ex
+      (let [err-msg (.toString ex)]
+        (utils/log (format "Failed to download [%s] due to: %s" url err-msg))
+        [nil err-msg]))))
 
 (defn notify-site-changed! [site change-type]
   (when (not-empty (:emails site))

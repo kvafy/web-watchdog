@@ -14,8 +14,10 @@
               :url        "http://www.european-lisp-symposium.org"
               :re-pattern #"(?s).*"
               :emails     ["happy@lisper.com"]
-              :state      {:content-hash nil
-                           :fail-counter 0}})]
+              :state      {:last-check-utc nil
+                           :content-hash   nil
+                           :fail-counter   0
+                           :last-error-msg nil}})]
    ;; Global configuration.
    :config {:check-interval-ms (* 1000 60 60)}})
 
@@ -54,14 +56,17 @@
         (f old-state new-state)))))
 
 (defn check-site [site]
-  (let [prev-hash (-> site :state :content-hash)
-        cur-data  (-> site :url networking/download)]
-    (if cur-data
-      (let [cur-hash (->> cur-data
-                          (re-find (:re-pattern site))
-                          utils/md5)]
+  (let [[data error]  (-> site :url networking/download)
+        ; save the current time, right after the data is downloaded
+        site (assoc-in site [:state :last-check-utc] (utils/now-utc))
+        ; update the error message (may be nil)
+        site (assoc-in site [:state :last-error-msg] error)]
+    (if-not error
+      (let [data-hash (->> data
+                           (re-find (:re-pattern site))
+                           utils/md5)]
         (-> site
-            (assoc-in [:state :content-hash] cur-hash)
+            (assoc-in [:state :content-hash] data-hash)
             (assoc-in [:state :fail-counter] 0)))
       (-> site
           ; remember the last good :content-hash

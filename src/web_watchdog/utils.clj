@@ -4,6 +4,9 @@
   (printf "[%s] %s\n" (java.util.Date.) msg)
   (flush))
 
+(defn now-utc []
+  (System/currentTimeMillis))
+
 (defn md5
   "Generate a md5 checksum for the given string"
   [token]
