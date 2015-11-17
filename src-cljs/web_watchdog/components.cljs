@@ -1,0 +1,69 @@
+(ns web-watchdog.components
+  (:require [reagent.core :as reagent]
+            [web-watchdog.state :as state]
+            [web-watchdog.utils :as utils]))
+
+(defn kv-pair [kv]
+  (let [[k v] (utils/transform-kv-pair kv)]
+    [:div
+     [:dt k]
+     [:dd v]]))
+
+(defn configuration []
+  [:div {:class "col-xs-12"}
+   [:h1 "Global configuration"]
+   [:dl
+    (for [kv (-> @state/app-state :config)]
+      [kv-pair kv])]])
+
+(defn site-tooltip-html [s]
+  (str "<dl>"
+       "  <dt>Notifications sent to</dt>"
+       "  <dd>" (utils/escape-html (clojure.string/join ", " (:emails s))) "</dd>"
+       "  <dt>Regexp (Java)</dt>"
+       "  <dd>" (utils/escape-html (:re-pattern s)) "</dd>"
+       "</dl>"))
+
+(defn site [s]
+  (let [fails        (-> s :state :fail-counter)
+        content-hash (-> s :state :content-hash)
+        status (cond (< 0 fails)  {:color-css "text-danger" ; Bootstrap class
+                                   :icon-css  "glyphicon glyphicon-exclamation-sign" ; Bootstrap class
+                                   :text      (str "Last check failed with " (-> s :state :last-error-msg))}
+                     content-hash {:color-css "text-success"
+                                   :icon-css  "glyphicon glyphicon-ok-sign"
+                                   :text      "Last check succeeded"}
+                     :else        {:color-css "text-muted"
+                                   :icon-css  "glyphicon glyphicon-question-sign"
+                                   :text      "No check performed yet"})]
+    [:tr {:class (:tr-class status)
+          ; Bootstrap Popover properties
+          :data-toggle    "popover"
+          :data-placement "bottom"
+          :data-html      "true"
+          :title          (:title s)
+          :data-content   (site-tooltip-html s)}
+     [:td
+      [:a {:href (:url s)} (:title s)]]
+     [:td (utils/utc->date-str (-> s :state :last-check-utc))]
+     [:td {:class (:color-css status)}
+      [:span {:class (:icon-css status)
+              :title (:text status)}]]]))
+
+(defn sites []
+  [:div {:class "col-xs-12"}
+   [:h1 "Checked sites"]
+   [:table {:class "table table-hover table-striped"}
+    [:thead
+     [:tr
+      [:td "Name"]
+      [:td "Last Check"]
+      [:td "Status"]]]
+    [:tbody
+     (for [s (-> @state/app-state :sites)]
+       [site s])]]])
+
+(defn content []
+  [:div {:class "row"}
+   [sites]
+   [configuration]])
