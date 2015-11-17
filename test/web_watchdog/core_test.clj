@@ -1,36 +1,8 @@
 (ns web-watchdog.core-test
   (:require [web-watchdog.core :refer :all]
+            [web-watchdog.state :refer [default-state]]
+            [web-watchdog.test-utils :refer :all]
             [clojure.test :refer :all]))
-
-(defn reader-for-string! [string]
-  (java.io.BufferedReader. (java.io.StringReader. string)))
-
-(defn site-title [label]
-  (format "Site %s" label))
-
-(defn site-url [label]
-  (format "http://site-%s.com" label))
-
-(defn site-emails [label]
-  [(format "%s@watcher.com" label)])
-
-(defn site [label & args]
-  (let [default-params {:last-check-utc nil
-                        :content-hash   nil
-                        :fail-counter   0
-                        :last-error-msg nil}
-        params (merge default-params (apply hash-map args))]
-    {:title      (site-title label)
-     :url        (site-url label)
-     :re-pattern #"(?s).*"
-     :emails     (site-emails label)
-     :state      {:last-check-utc (:last-check-utc params)
-                  :content-hash   (:content-hash params)
-                  :fail-counter   (:fail-counter params)
-                  :last-error-msg (:last-error-msg params)}}))
-
-(defn set-sites [app-state sites]
-  (assoc-in app-state [:sites] sites))
 
 
 (let [siteA0 (site "a")
@@ -115,40 +87,3 @@
               (testing "error message is saved"
                 (is (not= nil (get-in siteWithError [:state :last-error-msg])))
                 (is (string? (get-in siteWithError [:state :last-error-msg])))))))))))
-
-  (deftest handle-sites-changed-test
-    (let [sent-emails (atom nil)
-          setup!      (fn []
-                        (reset! sent-emails #{}))]
-      (with-redefs [postal.core/send-message
-                    (fn [{:keys [to]}] (swap! sent-emails into to))]
-        (testing "mail not sent if the content becomes available for the first time"
-          (let [old-state (set-sites default-state [(site "a")])
-                new-state (set-sites default-state [(site "a" :content-hash "a-hash")])]
-            (setup!)
-            (notify-if-sites-changed! old-state new-state)
-            (is (= #{} @sent-emails))))
-        (testing "mail sent if the content changes"
-          (let [old-state (set-sites default-state [(site "a" :content-hash "old-hash")])
-                new-state (set-sites default-state [(site "a" :content-hash "new-hash")])]
-            (setup!)
-            (notify-if-sites-changed! old-state new-state)
-            (is (= (set (site-emails "a")) @sent-emails))))
-        (testing "mail sent if site becomes unavailable"
-          (let [old-state (set-sites default-state [(site "a" :content-hash "constant")])
-                new-state (set-sites default-state [(site "a" :content-hash "constant" :fail-counter 1)])]
-            (setup!)
-            (notify-if-sites-changed! old-state new-state)
-            (is (= (set (site-emails "a")) @sent-emails))))
-        (testing "mail not sent if site stays unavailable"
-          (let [old-state (set-sites default-state [(site "a" :content-hash "constant" :fail-counter 1)])
-                new-state (set-sites default-state [(site "a" :content-hash "constant" :fail-counter 2)])]
-            (setup!)
-            (notify-if-sites-changed! old-state new-state)
-            (is (= #{} @sent-emails))))
-        (testing "mail not sent if site becomes available and content doesn't change"
-          (let [old-state (set-sites default-state [(site "a" :content-hash "constant" :fail-counter 20)])
-                new-state (set-sites default-state [(site "a" :content-hash "constant")])]
-            (setup!)
-            (notify-if-sites-changed! old-state new-state)
-            (is (= #{} @sent-emails)))))))

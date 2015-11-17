@@ -1,10 +1,13 @@
-(defproject web-watchdog "0.1.1-SNAPSHOT"
+(defproject web-watchdog "0.2.0-SNAPSHOT"
   :description "Tool watching a set of websites (URLs) for changes and availability."
   :url "http://example.com/FIXME"
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [com.draines/postal "1.11.3"]
+                 ; web server
+                 [ring/ring-jetty-adapter "1.4.0"]
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
+                 ; web client
                  [org.clojure/clojurescript "1.7.170"]
                  [reagent "0.5.1"]
                  [com.andrewmcveigh/cljs-time "0.3.14"]]
@@ -15,8 +18,8 @@
              :compiler {:output-to "resources/public/js/main.js"
                         :optimizations :whitespace
                         :pretty-print true}}]}
-  :main web-watchdog.core
-  :aot [web-watchdog.core]
+  :main web-watchdog.server
+  :aot [web-watchdog.server]
   :ring {:handler web-watchdog.handler/app}
   :profiles
   {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]

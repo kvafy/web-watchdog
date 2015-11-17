@@ -1,8 +1,10 @@
 (ns web-watchdog.handler
-  (:require [compojure.core :refer :all]
+  (:require [compojure.core :refer [defroutes GET]]
             [compojure.route :as route]
             [ring.util.response :as response]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            [web-watchdog.state :as state]))
+
 
 (defroutes app-routes
   (GET "/" [] (response/redirect "/index.html"))
