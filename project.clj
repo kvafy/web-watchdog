@@ -7,10 +7,11 @@
                  [ring/ring-jetty-adapter "1.4.0"]
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
+                 [ring/ring-json "0.4.0"]
                  ; web client
                  [org.clojure/clojurescript "1.7.170"]
                  [reagent "0.5.1"]
-                 [com.andrewmcveigh/cljs-time "0.3.14"]]
+                 [cljs-ajax "0.5.1"]]
   :plugins [[lein-ring "0.8.13"]
             [lein-cljsbuild "1.1.1"]]
   :cljsbuild

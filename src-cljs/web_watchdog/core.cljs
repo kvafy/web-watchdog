@@ -1,6 +1,7 @@
 (ns web-watchdog.core
   (:require [reagent.core :as reagent]
-            [web-watchdog.components :as components]))
+            [web-watchdog.components :as components]
+            [web-watchdog.state :as state]))
 
 (defn init-reagent! []
   ; Reagent will render the 'content' component into
@@ -17,9 +18,16 @@
   (-> (js/$ "body")
       (.popover #js {:selector "[data-toggle='popover']"})))
 
+(defn init-state-refresh! []
+  ; Periodically poll for current state.
+  ; Reagent will re-render UI based on the current state.
+  (state/poll-current-state!)
+  (js/setInterval state/poll-current-state! (* 10 1000)))
+
 (defn on-document-ready []
   (init-reagent!)
-  (init-bootstrap!))
+  (init-bootstrap!)
+  (init-state-refresh!))
 
 ; JavaScript start-up actions
 (-> (js/$ js/document)
