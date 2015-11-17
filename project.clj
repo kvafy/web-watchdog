@@ -15,13 +15,16 @@
   :plugins [[lein-ring "0.8.13"]
             [lein-cljsbuild "1.1.1"]]
   :cljsbuild
-  {:builds [{:source-paths ["src-cljs"]
-             :compiler {:output-to "resources/public/js/main.js"
-                        :optimizations :whitespace
-                        :pretty-print true}}]}
+    {:builds
+      [{:source-paths ["src-cljs"]
+        :compiler
+          {:output-to "resources/public/js/main.js"
+           :optimizations :whitespace
+           :pretty-print true}}]}
   :main web-watchdog.server
   :aot [web-watchdog.server]
   :ring {:handler web-watchdog.handler/app}
   :profiles
-  {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
-                        [ring-mock "0.1.5"]]}})
+    {:dev
+      {:dependencies [[javax.servlet/servlet-api "2.5"]
+                      [ring-mock "0.1.5"]]}})
