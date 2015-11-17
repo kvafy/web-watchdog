@@ -6,7 +6,8 @@
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
                  [org.clojure/clojurescript "1.7.170"]
-                 [reagent "0.5.1"]]
+                 [reagent "0.5.1"]
+                 [com.andrewmcveigh/cljs-time "0.3.14"]]
   :plugins [[lein-ring "0.8.13"]
             [lein-cljsbuild "1.1.1"]]
   :cljsbuild

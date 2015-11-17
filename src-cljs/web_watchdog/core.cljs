@@ -1,6 +1,8 @@
 (ns web-watchdog.core
   (:require [reagent.core :as reagent]
-            [goog.string.format]))
+            [goog.string.format]
+            [cljs-time.coerce]
+            [cljs-time.format]))
 
 ;; Application state. The web UI rendered by Reagent is just
 ;; a mathematical function projecting the state to HTML. Each
@@ -13,9 +15,18 @@
                               :url        "http://www.european-lisp-symposium.org"
                               :re-pattern "(?s).*"
                               :emails     ["happy@lisper.com"]
-                              :state      {:content-hash nil
-                                           :fail-counter 0}}]
+                              :state      {:last-check-utc 1447629015000
+                                           :content-hash nil
+                                           :fail-counter 1
+                                           :last-error-msg "java.io.IOException: Connection refused"}}]
                      :config {:check-interval-ms (* 1000 60 60)}}))
+
+(def time-formatter (cljs-time.format/formatter "H:m d/M/yyyy"))
+
+(defn utc->date-str [utc]
+  (some->> utc
+           cljs-time.coerce/from-long
+           (cljs-time.format/unparse time-formatter)))
 
 (defn duration-pprint [millis]
   (let [conversions ["second(s)" 1000
@@ -74,9 +85,9 @@
 (defn site [s]
   (let [fails        (-> s :state :fail-counter)
         content-hash (-> s :state :content-hash)
-        status (cond (< 0 fails)  {:color-css "text-danger"
-                                   :icon-css  "glyphicon glyphicon-exclamation-sign"
-                                   :text      "Last check failed"}
+        status (cond (< 0 fails)  {:color-css "text-danger" ; Bootstrap class
+                                   :icon-css  "glyphicon glyphicon-exclamation-sign" ; Bootstrap class
+                                   :text      (str "Last check failed with " (-> s :state :last-error-msg))}
                      content-hash {:color-css "text-success"
                                    :icon-css  "glyphicon glyphicon-ok-sign"
                                    :text      "Last check succeeded"}
@@ -92,7 +103,7 @@
           :data-content   (site-tooltip-html s)}
      [:td
       [:a {:href (:url s)} (:title s)]]
-     [:td "???"]
+     [:td (utc->date-str (-> s :state :last-check-utc))]
      [:td {:class (:color-css status)}
       [:span {:class (:icon-css status)
               :title (:text status)}]]]))
