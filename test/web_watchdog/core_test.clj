@@ -43,23 +43,23 @@
       siteF1 (site "f" :fail-counter 1)
       siteF2 (site "f" :fail-counter 2)]
 
-  (deftest sites-in-both-states-test
+  (deftest common-sites-test
     (testing "Set of sites remains the same"
       (is (= [[siteA0 siteA1]]
-             (sites-in-both-states (set-sites default-state [siteA0])
-                                   (set-sites default-state [siteA1])))))
+             (common-sites (set-sites default-state [siteA0])
+                           (set-sites default-state [siteA1])))))
     (testing "No common site"
       (is (= []
-             (sites-in-both-states (set-sites default-state [siteA0])
-                                   (set-sites default-state [siteB0])))))
+             (common-sites (set-sites default-state [siteA0])
+                           (set-sites default-state [siteB0])))))
     (testing "A site is removed"
       (is (= [[siteA0 siteA1]]
-             (sites-in-both-states (set-sites default-state [siteB0 siteA0])
-                                   (set-sites default-state [siteA1])))))
+             (common-sites (set-sites default-state [siteB0 siteA0])
+                           (set-sites default-state [siteA1])))))
     (testing "A site is added"
       (is (= [[siteA0 siteA1]]
-             (sites-in-both-states (set-sites default-state [siteA0])
-                                   (set-sites default-state [siteB0 siteA1]))))))
+             (common-sites (set-sites default-state [siteA0])
+                           (set-sites default-state [siteB0 siteA1]))))))
 
   (deftest site-change-type-test
     (testing "No content change, consider as no change."

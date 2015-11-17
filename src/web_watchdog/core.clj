@@ -22,11 +22,11 @@
    :config {:check-interval-ms (* 1000 60 60)}})
 
 
-(defn sites-in-both-states [old-state new-state]
+(defn common-sites [old-state new-state]
   (->> (concat (:sites old-state) (:sites new-state))
-               (group-by #(:url %))
-               vals
-               (filter #(= 2 (count %)))))
+       (group-by #(:url %))
+       vals
+       (filter #(= 2 (count %)))))
 
 (defn site-change-type [old-site new-site]
   (let [hash  (get-in old-site [:state :content-hash])
@@ -44,7 +44,7 @@
           (when-let [change-type (site-change-type old-site new-site)]
             (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
             (networking/notify-site-changed! new-site change-type)))
-        (sites-in-both-states old-state new-state))))
+        (common-sites old-state new-state))))
 
 (defn persist-new-state! [old-state new-state]
   (persistence/save-state! new-state))
