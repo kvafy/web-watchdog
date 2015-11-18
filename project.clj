@@ -19,8 +19,8 @@
       [{:source-paths ["src-cljs"]
         :compiler
           {:output-to "resources/public/js/main.js"
-           :optimizations :whitespace
-           :pretty-print true}}]}
+           :optimizations :advanced
+           :externs ["resources/externs.js"]}}]}
   :main web-watchdog.server
   :aot [web-watchdog.server]
   :ring {:handler web-watchdog.handler/app}
