@@ -10,6 +10,7 @@
 function jQuery(arg1, arg2) {}
 
 jQuery.prototype.on = function(arg1, selector, data, handler) {};
+jQuery.prototype.getJSON = function(url, data, success) {};
 
 var $ = jQuery;
 

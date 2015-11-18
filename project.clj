@@ -10,8 +10,7 @@
                  [ring/ring-json "0.4.0"]
                  ; web client
                  [org.clojure/clojurescript "1.7.170"]
-                 [reagent "0.5.1"]
-                 [cljs-ajax "0.5.1"]]
+                 [reagent "0.5.1"]]
   :plugins [[lein-ring "0.8.13"]
             [lein-cljsbuild "1.1.1"]]
   :cljsbuild
