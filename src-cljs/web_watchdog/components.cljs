@@ -16,13 +16,12 @@
     (for [kv (-> @state/app-state :config)]
       [kv-pair kv])]])
 
-(defn site-tooltip-html [s]
-  (str "<dl>"
-       "  <dt>Notifications sent to</dt>"
-       "  <dd>" (utils/escape-html (clojure.string/join ", " (:emails s))) "</dd>"
-       "  <dt>Regexp (Java)</dt>"
-       "  <dd>" (utils/escape-html (:re-pattern s)) "</dd>"
-       "</dl>"))
+(defn site-tooltip [s]
+  [:dl
+   [:dt "Notifications sent to"]
+   [:dd (clojure.string/join (:emails s))]
+   [:dt "Regexp (Java)"]
+   [:dd (:re-pattern s)]])
 
 (defn site [s]
   (let [fails        (-> s :state :fail-counter)
@@ -42,7 +41,7 @@
           :data-placement "bottom"
           :data-html      "true"
           :title          (:title s)
-          :data-content   (site-tooltip-html s)}
+          :data-content   (reagent/render-to-string (site-tooltip s))}
      [:td
       [:a {:href (:url s)} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
