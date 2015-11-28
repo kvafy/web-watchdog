@@ -7,18 +7,18 @@
 (defonce app-state (atom nil))
 
 (def default-state
-  {:sites [(comment
-             ;; This is how a site is represented.
-             {:title      "European LISP Symposium"
-              :url        "http://www.european-lisp-symposium.org"
-              :re-pattern #"(?s).*"
-              :emails     ["happy@lisper.com"]
-              :state      {:last-check-utc nil
-                           :content-hash   nil
-                           :last-change-utc nil
-                           :fail-counter   0
-                           :last-error-utc nil
-                           :last-error-msg nil}})]
+  {:sites [#_
+           ;; This is how a site is represented.
+           {:title      "European LISP Symposium"
+            :url        "http://www.european-lisp-symposium.org"
+            :re-pattern #"(?s).*"
+            :emails     ["happy@lisper.com"]
+            :state      {:last-check-utc nil
+                         :content-hash   nil
+                         :last-change-utc nil
+                         :fail-counter   0
+                         :last-error-utc nil
+                         :last-error-msg nil}}]
    ;; Global configuration.
    :config {:check-interval-ms (* 1000 60 60)}})
 

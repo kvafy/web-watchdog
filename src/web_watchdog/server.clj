@@ -24,7 +24,7 @@
 
 (defn -main [& args]
   (utils/log "Starting application on port 8080")
-  (state/initialize!)
   (state/register-listeners!)
+  (state/initialize!)
   (start-watcher-thread!)
   (start-server! {:port 8080 :join? false}))

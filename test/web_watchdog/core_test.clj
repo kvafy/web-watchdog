@@ -23,6 +23,9 @@
     (testing "No common site"
       (is (= []
              (common-sites (set-sites default-state [siteA0])
+                           (set-sites default-state [siteB0]))))
+      (is (= []
+             (common-sites (set-sites default-state nil)
                            (set-sites default-state [siteB0])))))
     (testing "A site is removed"
       (is (= [[siteA0 siteA1]]

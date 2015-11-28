@@ -27,6 +27,8 @@ Open http://localhost:8080 in your browser.
 
 ## Configuration
 
-Edit the *state.clj* file in your current working directory to add
-new watched websites or modify definitions of existing ones. The
-application requires a restart for the changes to take effect.
+Configuration and state is contained in *state.clj* file, which is created in the current working directory during the first run.
+
+To register a website for watching or to modify definitions of already watched sites, edit the *state.clj* file. See comment in *src/web_watchdog/state.clj* to understand structure/format of the *state.clj* file.
+
+The application requires a restart for the changes to take effect.
