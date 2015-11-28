@@ -1,14 +1,22 @@
 (ns web-watchdog.utils
   (:require [goog.string.format]))
 
+(defn today? [date]
+  (let [now  (js/Date.)]
+    (and (= (.getDate date) (.getDate now))
+         (= (.getMonth date) (.getMonth now))
+         (= (.getFullYear date) (.getFullYear now)))))
+
 (defn utc->date-str [millis]
-  (let [date (js/Date. millis)]
-    (goog.string/format "%d:%02d %d/%d/%d"
-                        (.getHours date)
-                        (.getMinutes date)
-                        (.getDate date)
-                        (inc (.getMonth date))
-                        (.getFullYear date))))
+  (let [date (js/Date. millis)
+        Y    (.getFullYear date)
+        M    (inc (.getMonth date))
+        D    (.getDate date)
+        H    (.getHours date)
+        m    (.getMinutes date)]
+    (if (today? date)
+      (goog.string/format "%d:%02d" H m)
+      (goog.string/format "%d:%02d %d/%d/%d" H m D M Y))))
 
 (defn duration-pprint [millis]
   (let [conversions ["second(s)" 1000
