@@ -14,15 +14,23 @@
         (utils/log (format "Failed to download [%s] due to: %s" url err-msg))
         [nil err-msg]))))
 
+(defn mail-subject [site change-type]
+  (condp = change-type
+    :content-changed
+      (format "[Web-watchdog change] %s" (:title site))
+    :site-failing
+      (format "[Web-watchdog site down] %s" (:title site))))
+
+(defn mail-body [site change-type]
+  (condp = change-type
+    :content-changed
+      (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))
+    :site-failing
+      (format "Site %s at %s is failing." (:title site) (:url site))))
+
 (defn notify-site-changed! [site change-type]
   (when (not-empty (:emails site))
-    (let [subject (format "[Web-watchdog] %s" (:title site))
-          body    (condp = change-type
-                    :content-changed
-                    (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))
-                    :site-failing
-                    (format "Site %s at %s is failing." (:title site) (:url site)))]
-      (postal.core/send-message {:from "mailer@webwatchdog.com"
-                                 :to (:emails site)
-                                 :subject subject
-                                 :body body}))))
+    (postal.core/send-message {:from "mailer@webwatchdog.com"
+                               :to (:emails site)
+                               :subject (mail-subject site change-type)
+                               :body (mail-body site change-type)})))
