@@ -27,8 +27,8 @@ Open http://localhost:8080 in your browser.
 
 ## Configuration
 
-Configuration and state is contained in *state.clj* file, which is created in the current working directory during the first run.
+Configuration and state is contained in *state.edn* file, which is created in the current working directory during the first run.
 
-To register a website for watching or to modify definitions of already watched sites, edit the *state.clj* file. See comment in *src/web_watchdog/state.clj* to understand structure/format of the *state.clj* file.
+To register a website for watching or to modify definitions of already watched sites, edit the *state.edn* file. See comment in *src/web_watchdog/state.clj* to understand structure/format of the *state.edn* file.
 
 The application requires a restart for the changes to take effect.

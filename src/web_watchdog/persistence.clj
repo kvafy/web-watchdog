@@ -2,7 +2,7 @@
   (:require [web-watchdog.utils :as utils]
             [clojure.tools.reader.edn :as edn]))
 
-(def state-file "state.clj")
+(def state-file "state.edn")
 
 (defn save-state! [state]
   (as-> state tmp
