@@ -6,8 +6,8 @@ JSON etc.) is defined by a regular expression and changes of the website are
 being watched only in context of the portion matched by the regular expression.
 
 Used technologies:
-* Clojure
-
+* Languages: Clojure, ClojureScript, JavaScript
+* UI: React.js, Reagent, jQuery
 
 ## Prerequisites
 
@@ -22,6 +22,7 @@ Execute the following commands to run web-watchdog:
     $ lein uberjar
     $ java -jar target/web-watchdog-standalone*.jar
 
+Open http://localhost:8080 in your browser.
 
 ## Configuration
 
