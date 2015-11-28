@@ -45,6 +45,8 @@
      [:td
       [:a {:href (:url s)} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
+     [:td (utils/utc->date-str (-> s :state :last-change-utc))]
+     [:td (utils/utc->date-str (-> s :state :last-error-utc))]
      [:td {:class (:color-css status)}
       [:span {:class (:icon-css status)
               :title (:text status)}]]]))
@@ -57,6 +59,8 @@
      [:tr
       [:td "Name"]
       [:td "Last Check"]
+      [:td "Last Change"]
+      [:td "Last Error"]
       [:td "Status"]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]

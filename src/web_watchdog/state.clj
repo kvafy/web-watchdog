@@ -15,7 +15,9 @@
               :emails     ["happy@lisper.com"]
               :state      {:last-check-utc nil
                            :content-hash   nil
+                           :last-change-utc nil
                            :fail-counter   0
+                           :last-error-utc nil
                            :last-error-msg nil}})]
    ;; Global configuration.
    :config {:check-interval-ms (* 1000 60 60)}})

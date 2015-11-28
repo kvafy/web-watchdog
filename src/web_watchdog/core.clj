@@ -19,15 +19,18 @@
       :else nil)))
 
 (defn check-site [site]
-  (let [[data error]  (-> site :url networking/download)]
+  (let [now (utils/now-utc)
+        [data error]  (-> site :url networking/download)
+        hash (some->> data (re-find (:re-pattern site)) utils/md5)
+        changed (and data (not= hash (-> site :state :content-hash)))]
     (cond-> site
-      true        (assoc-in [:state :last-check-utc] (utils/now-utc))
+      true        (assoc-in [:state :last-check-utc] now)
       true        (assoc-in [:state :last-error-msg] error)
-      (not error) (assoc-in [:state :content-hash] (->> data
-                                                        (re-find (:re-pattern site))
-                                                        utils/md5))
+      (not error) (assoc-in [:state :content-hash] hash)
       (not error) (assoc-in [:state :fail-counter] 0)
-      error       (update-in [:state :fail-counter] inc))))
+      changed     (assoc-in [:state :last-change-utc] now)
+      error       (update-in [:state :fail-counter] inc)
+      error       (assoc-in [:state :last-error-utc] now))))
 
 (defn check-sites [sites]
   (reduce (fn [res-sites site]

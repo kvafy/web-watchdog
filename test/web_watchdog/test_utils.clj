@@ -14,19 +14,18 @@
   [(format "%s@watcher.com" label)])
 
 (defn site [label & args]
-  (let [default-params {:last-check-utc nil
-                        :content-hash   nil
-                        :fail-counter   0
-                        :last-error-msg nil}
-        params (merge default-params (apply hash-map args))]
+  (let [default-state {:last-check-utc  nil
+                       :content-hash    nil
+                       :last-change-utc nil
+                       :fail-counter    0
+                       :last-error-utc  nil
+                       :last-error-msg  nil}
+        state (merge default-state (apply hash-map args))]
     {:title      (site-title label)
      :url        (site-url label)
      :re-pattern #"(?s).*"
      :emails     (site-emails label)
-     :state      {:last-check-utc (:last-check-utc params)
-                  :content-hash   (:content-hash params)
-                  :fail-counter   (:fail-counter params)
-                  :last-error-msg (:last-error-msg params)}}))
+     :state      state}))
 
 (defn set-sites [app-state sites]
   (assoc-in app-state [:sites] sites))

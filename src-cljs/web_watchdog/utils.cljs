@@ -8,15 +8,16 @@
          (= (.getFullYear date) (.getFullYear now)))))
 
 (defn utc->date-str [millis]
-  (let [date (js/Date. millis)
-        Y    (.getFullYear date)
-        M    (inc (.getMonth date))
-        D    (.getDate date)
-        H    (.getHours date)
-        m    (.getMinutes date)]
-    (if (today? date)
-      (goog.string/format "%d:%02d" H m)
-      (goog.string/format "%d:%02d %d/%d/%d" H m D M Y))))
+  (when millis
+    (let [date (js/Date. millis)
+          Y    (.getFullYear date)
+          M    (inc (.getMonth date))
+          D    (.getDate date)
+          H    (.getHours date)
+          m    (.getMinutes date)]
+      (if (today? date)
+        (goog.string/format "%d:%02d" H m)
+        (goog.string/format "%d:%02d %d/%d/%d" H m D M Y)))))
 
 (defn duration-pprint [millis]
   (let [conversions ["second(s)" 1000

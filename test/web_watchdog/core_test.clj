@@ -53,9 +53,8 @@
   (let [check-time 123456]
     (with-redefs [web-watchdog.utils/now-utc
                   (fn [] check-time)]
-      (testing "successful download"
+      (testing "successful download with content change"
         (let [siteWithError (site "originally with error"
-                                  :last-check-utc 0
                                   :content-hash   "old-hash"
                                   :fail-counter   5
                                   :last-error-msg "download failed")]
@@ -66,9 +65,42 @@
                 (is (= check-time (get-in siteOK [:state :last-check-utc]))))
               (testing "hash of site content is updated"
                 (is (not= "old-hash" (get-in siteOK [:state :content-hash]))))
+              (testing "last change timestamp is updated"
+                (is (= check-time (get-in siteOK [:state :last-change-utc]))))
               (testing "fail counter and error message is reset"
                 (is (= 0 (get-in siteOK [:state :fail-counter])))
-                (is (= nil (get-in siteOK [:state :last-error-msg]))))))))
+                (is (= nil (get-in siteOK [:state :last-error-msg]))))
+              (testing "last error timestamp remains untouched"
+                (is (= nil
+                       (get-in siteWithError [:state :last-error-utc])
+                       (get-in siteOK [:state :last-error-utc]))))))))
+      (testing "successful download without content change"
+        (let [siteStatic (site "originally with error"
+                               :content-hash    "downloaded content"
+                               :fail-counter    5
+                               :last-error-msg  "download failed")]
+          (with-redefs [clojure.java.io/reader
+                        (fn [_] (reader-for-string! "downloaded content"))
+                        web-watchdog.utils/md5
+                        identity]
+            (let [siteOK (check-site siteStatic)]
+              (testing "time of check is updated"
+                (is (= check-time (get-in siteOK [:state :last-check-utc]))))
+              (testing "hash of site content remains untouched" ;; more of a precondition of the test
+                (is (= "downloaded content"
+                       (get-in siteStatic [:state :content-hash])
+                       (get-in siteOK [:state :content-hash]))))
+              (testing "last change timestamp remains untouched"
+                (is (= nil
+                       (get-in siteStatic [:state :last-change-utc])
+                       (get-in siteOK [:state :last-change-utc]))))
+              (testing "fail counter and error message is reset"
+                (is (= 0 (get-in siteOK [:state :fail-counter])))
+                (is (= nil (get-in siteOK [:state :last-error-msg]))))
+              (testing "last error timestamp remains untouched"
+                (is (= nil
+                       (get-in siteStatic [:state :last-error-utc])
+                       (get-in siteOK [:state :last-error-utc]))))))))
       (testing "failed download"
         (let [siteOK (site "originally without any error"
                            :last-check-utc 0
@@ -80,10 +112,18 @@
             (let [siteWithError (check-site siteOK)]
               (testing "time of check is updated"
                 (is (= check-time (get-in siteWithError [:state :last-check-utc]))))
-              (testing "hash of site content is preserved"
-                (is (= "old-hash" (get-in siteWithError [:state :content-hash]))))
+              (testing "hash of site content remains untouched"
+                (is (= "old-hash"
+                       (get-in siteOK [:state :content-hash])
+                       (get-in siteWithError [:state :content-hash]))))
+              (testing "last change timestamp remains untouched"
+                (is (= nil
+                       (get-in siteOK [:state :last-change-utc])
+                       (get-in siteWithError [:state :last-change-utc]))))
               (testing "fail counter increased"
                 (is (= 1 (get-in siteWithError [:state :fail-counter]))))
+              (testing "last error timestamp is updated"
+                (is (= check-time (get-in siteWithError [:state :last-error-utc]))))
               (testing "error message is saved"
                 (is (not= nil (get-in siteWithError [:state :last-error-msg])))
                 (is (string? (get-in siteWithError [:state :last-error-msg])))))))))))
