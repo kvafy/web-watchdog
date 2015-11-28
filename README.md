@@ -8,7 +8,7 @@ being watched only in context of the portion matched by the regular expression.
 Used technologies:
 
 * Languages: Clojure, ClojureScript, JavaScript
-* UI: React.js, Reagent, jQuery
+* UI: React.js, Reagent, jQuery, Bootstrap
 
 ## Prerequisites
 
