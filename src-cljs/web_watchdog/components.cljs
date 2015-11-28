@@ -19,7 +19,7 @@
 (defn site-tooltip [s]
   [:dl
    [:dt "Notifications sent to"]
-   [:dd (clojure.string/join (:emails s))]
+   [:dd (clojure.string/join ", " (:emails s))]
    [:dt "Regexp (Java)"]
    [:dd (:re-pattern s)]])
 
