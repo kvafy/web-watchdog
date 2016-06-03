@@ -12,8 +12,9 @@ Used technologies:
 
 ## Prerequisites
 
-You will need *Leiningen* and Java runtime installed to compile and run
-the application.
+* Java Runtime Environment
+* Leiningen (build tool for clojure)
+* sendmail executable on the PATH
 
 
 ## Running
