@@ -3,6 +3,7 @@
   :url "http://example.com/FIXME"
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [com.draines/postal "1.11.3"]
+                 [clj-http "3.1.0"]
                  ; web server
                  [ring/ring-jetty-adapter "1.4.0"]
                  [compojure "1.4.0"]

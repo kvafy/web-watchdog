@@ -1,5 +1,5 @@
 (ns web-watchdog.networking
-  (:require [clojure.java.io :as io]
+  (:require [clj-http.client :as client]
             [postal.core]
             [web-watchdog.utils :as utils]))
 
@@ -7,8 +7,7 @@
   (let [cm (java.net.CookieManager.)]
     (java.net.CookieHandler/setDefault cm))
   (try
-    (with-open [in (io/reader url)]
-      [(slurp in) nil])
+    [(-> url (client/get {:insecure? true}) :body) nil]
     (catch java.lang.Exception ex
       (let [err-msg (.toString ex)]
         (utils/log (format "Failed to download [%s] due to: %s" url err-msg))
