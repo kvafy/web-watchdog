@@ -17,4 +17,5 @@
         slurp
         edn/read-string
         (utils/update-map-keys :re-pattern #(re-pattern %)))
-    (catch java.io.IOException ex nil)))
+    ; ok, state simply does not exist
+    (catch java.io.FileNotFoundException ex nil)))
