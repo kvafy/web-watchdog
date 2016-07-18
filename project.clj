@@ -1,7 +1,7 @@
 (defproject web-watchdog "0.2.0-SNAPSHOT"
   :description "Tool watching a set of websites (URLs) for changes and availability."
   :url "http://example.com/FIXME"
-  :dependencies [[org.clojure/clojure "1.8.0-RC2"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
                  [com.draines/postal "1.11.3"]
                  ; web server
                  [ring/ring-jetty-adapter "1.4.0"]
