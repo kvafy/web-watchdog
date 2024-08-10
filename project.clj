@@ -1,19 +1,20 @@
 (defproject web-watchdog "0.2.0-SNAPSHOT"
   :description "Tool watching a set of websites (URLs) for changes and availability."
-  :url "http://example.com/FIXME"
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [com.draines/postal "1.11.3"]
+  :url "https://github.com/kvafy/web-watchdog"
+  :dependencies [[org.clojure/clojure "1.11.4"]
+                 [com.draines/postal "2.0.5"]
                  [clj-http "3.1.0"]
                  ; web server
-                 [ring/ring-jetty-adapter "1.4.0"]
-                 [compojure "1.4.0"]
-                 [ring/ring-defaults "0.1.5"]
-                 [ring/ring-json "0.4.0"]
+                 [ring/ring-jetty-adapter "1.12.2"]
+                 [commons-io/commons-io "2.16.1"]  ;; required dep for ring-core
+                 [compojure "1.7.1"]
+                 [ring/ring-defaults "0.5.0"]
+                 [ring/ring-json "0.5.1"]
                  ; web client
-                 [org.clojure/clojurescript "1.7.170"]
-                 [reagent "0.5.1"]]
-  :plugins [[lein-ring "0.8.13"]
-            [lein-cljsbuild "1.1.1"]]
+                 [org.clojure/clojurescript "1.11.132"]
+                 [reagent "1.2.0"]]
+  :plugins [[lein-ring "0.12.6"]
+            [lein-cljsbuild "1.1.8"]]
   :cljsbuild
     {:builds
       [{:source-paths ["src-cljs"]
@@ -27,4 +28,4 @@
   :profiles
     {:dev
       {:dependencies [[javax.servlet/servlet-api "2.5"]
-                      [ring-mock "0.1.5"]]}})
+                      [ring/ring-mock "0.4.0"]]}})
