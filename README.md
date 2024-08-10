@@ -21,8 +21,8 @@ Used technologies:
 
 Execute the following commands to run web-watchdog:
 
-    $ lein uberjar
-    $ java -jar target/web-watchdog-standalone*.jar
+    $ lein do clean, cljsbuild once, uberjar
+    $ java -jar target/web-watchdog-*-standalone.jar
 
 Open http://localhost:8080 in your browser.
 
