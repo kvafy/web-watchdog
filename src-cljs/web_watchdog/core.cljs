@@ -1,5 +1,5 @@
 (ns web-watchdog.core
-  (:require [reagent.core :as reagent]
+  (:require [reagent.dom]
             [web-watchdog.components :as components]
             [web-watchdog.state :as state]))
 
@@ -7,7 +7,7 @@
   ; Reagent will render the 'content' component into
   ; #content HTML element
   (let [container (.getElementById js/document "content")]
-    (reagent/render (components/content) container)))
+    (reagent.dom/render (components/content) container)))
 
 (defn init-bootstrap! []
   ; Initialize Bootstrap Popover plug-in (opt-in).

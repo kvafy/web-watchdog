@@ -1,5 +1,5 @@
 (ns web-watchdog.components
-  (:require [reagent.core :as reagent]
+  (:require [reagent.dom.server]
             [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
 
@@ -41,7 +41,7 @@
           :data-placement "bottom"
           :data-html      "true"
           :title          (:title s)
-          :data-content   (reagent/render-to-string (site-tooltip s))}
+          :data-content   (reagent.dom.server/render-to-string (site-tooltip s))}
      [:td
       [:a {:href (:url s)} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
