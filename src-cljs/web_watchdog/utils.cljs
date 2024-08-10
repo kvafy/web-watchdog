@@ -1,5 +1,6 @@
 (ns web-watchdog.utils
-  (:require [goog.string.format]))
+  (:require [goog.string :as gstring]
+            goog.string.format))
 
 (defn today? [date]
   (let [now  (js/Date.)]
@@ -16,8 +17,8 @@
           H    (.getHours date)
           m    (.getMinutes date)]
       (if (today? date)
-        (goog.string/format "%d:%02d" H m)
-        (goog.string/format "%d:%02d %d/%d/%d" H m D M Y)))))
+        (gstring/format "%d:%02d" H m)
+        (gstring/format "%d-%02d-%02d %d:%02d" Y M D H m)))))
 
 (defn duration-pprint [millis]
   (let [conversions ["second(s)" 1000
@@ -28,11 +29,11 @@
            value       millis
            conversions conversions]
       (if (empty? conversions)
-        (goog.string/format "%.1f %s" value unit)
+        (gstring/format "%.1f %s" value unit)
         (let [[next-unit divider & next-conversions] conversions
               next-value (/ value divider)]
           (if (< (.abs js/Math next-value) 1)
-            (goog.string/format "%.1f %s" value unit)
+            (gstring/format "%.1f %s" value unit)
             (recur next-unit next-value next-conversions)))))))
 
 (defn escape-html [html]
