@@ -2,7 +2,8 @@
   (:require [web-watchdog.core :refer :all]
             [web-watchdog.state :refer [default-state]]
             [web-watchdog.test-utils :refer :all]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [web-watchdog.networking]))
 
 
 (let [siteA0 (site "a")
@@ -62,7 +63,9 @@
                                   :fail-counter   5
                                   :last-error-msg "download failed")]
           (with-redefs [clojure.java.io/reader
-                        (fn [_] (reader-for-string! "downloaded content"))]
+                        (fn [_] (reader-for-string! "downloaded content"))
+                        web-watchdog.networking/download
+                        (fn [_] ["downloaded content" nil])]
             (let [siteOK (check-site siteWithError)]
               (testing "time of check is updated"
                 (is (= check-time (get-in siteOK [:state :last-check-utc]))))
@@ -79,19 +82,16 @@
                        (get-in siteOK [:state :last-error-utc]))))))))
       (testing "successful download without content change"
         (let [siteStatic (site "originally with error"
-                               :content-hash    "downloaded content"
+                               :content-hash    (web-watchdog.utils/md5 "downloaded content")
                                :fail-counter    5
                                :last-error-msg  "download failed")]
-          (with-redefs [clojure.java.io/reader
-                        (fn [_] (reader-for-string! "downloaded content"))
-                        web-watchdog.utils/md5
-                        identity]
+          (with-redefs [web-watchdog.networking/download
+                        (fn [_] ["downloaded content" nil])]
             (let [siteOK (check-site siteStatic)]
               (testing "time of check is updated"
                 (is (= check-time (get-in siteOK [:state :last-check-utc]))))
               (testing "hash of site content remains untouched" ;; more of a precondition of the test
-                (is (= "downloaded content"
-                       (get-in siteStatic [:state :content-hash])
+                (is (= (get-in siteStatic [:state :content-hash])
                        (get-in siteOK [:state :content-hash]))))
               (testing "last change timestamp remains untouched"
                 (is (= nil
@@ -110,8 +110,8 @@
                            :content-hash   "old-hash"
                            :fail-counter   0
                            :last-error-msg nil)]
-          (with-redefs [clojure.java.io/reader
-                        (fn [_] (throw (RuntimeException. "download failed")))]
+          (with-redefs [web-watchdog.networking/download
+                        (fn [_] [nil "download failed"])]
             (let [siteWithError (check-site siteOK)]
               (testing "time of check is updated"
                 (is (= check-time (get-in siteWithError [:state :last-check-utc]))))
