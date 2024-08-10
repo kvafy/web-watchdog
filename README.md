@@ -14,15 +14,20 @@ Used technologies:
 
 * Java Runtime Environment
 * Leiningen (build tool for clojure)
-* sendmail executable on the PATH
-
+* sendmail executable on the PATH and configured
+  ([gmail configuration](https://www.tutorialspoint.com/configure-sendmail-with-gmail-on-ubuntu))
 
 ## Running
 
 Execute the following commands to run web-watchdog:
 
-    $ lein do clean, cljsbuild once, uberjar
-    $ java -jar target/web-watchdog-*-standalone.jar
+    ```shell
+    export MAILER_USER=<gmail-account>
+    export MAILER_PASSWORD=<app-password>
+
+    lein do clean, cljsbuild once, uberjar
+    java -jar target/web-watchdog-*-standalone.jar
+    ```
 
 Open http://localhost:8080 in your browser.
 

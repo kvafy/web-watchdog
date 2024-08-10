@@ -29,7 +29,13 @@
 
 (defn notify-site-changed! [site change-type]
   (when (not-empty (:emails site))
-    (postal.core/send-message {:from "mailer@webwatchdog.com"
-                               :to (:emails site)
-                               :subject (mail-subject site change-type)
-                               :body (mail-body site change-type)})))
+    (postal.core/send-message
+     {:host "smtp.gmail.com"
+      :user (System/getenv "MAILER_USER")
+      :pass (System/getenv "MAILER_PASSWORD")
+      :port 587
+      :tls true}
+     {:from "mailer@webwatchdog.com"
+      :to (:emails site)
+      :subject (mail-subject site change-type)
+      :body (mail-body site change-type)})))

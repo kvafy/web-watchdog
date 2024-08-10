@@ -9,7 +9,7 @@
         setup!      (fn []
                       (reset! sent-emails #{}))]
     (with-redefs [postal.core/send-message
-                  (fn [{:keys [to]}] (swap! sent-emails into to))]
+                  (fn [_ {:keys [to]}] (swap! sent-emails into to))]
       (testing "mail not sent if the content becomes available for the first time"
         (let [old-state (set-sites default-state [(site "a")])
               new-state (set-sites default-state [(site "a" :content-hash "a-hash")])]
