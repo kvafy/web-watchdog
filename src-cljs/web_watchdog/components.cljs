@@ -14,7 +14,7 @@
    [:h1 "Global configuration"]
    [:dl
     (for [kv (-> @state/app-state :config)]
-      [kv-pair kv])]])
+      ^{:key (first kv)} [kv-pair kv])]])
 
 (defn site-tooltip [s]
   [:dl
@@ -64,7 +64,7 @@
       [:td "Status"]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
-       [site s])]]])
+       ^{:key (:url s)} [site s])]]])
 
 (defn content []
   [:div {:class "row"}
