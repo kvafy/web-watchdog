@@ -1,6 +1,33 @@
 (ns web-watchdog.core
   (:require [web-watchdog.networking :as networking]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.utils :as utils])
+  (:import [org.jsoup Jsoup]))
+
+(defn process-select-result
+  "Post-processes the result of Jsoup `select` or `selectXpath` methods.
+   If nothing was matched, returns nil, otherwise converts the result to an HTML string."
+  [^org.jsoup.select.Elements els]
+  (let [no-match (nil? (. els first))]
+    (if no-match nil (. els html))))
+
+(defn apply-content-extractor
+  "Each type of extractor takes and produces a string, enabling easy chaining."
+  [html-str [op & op-args]]
+  (when-not (nil? html-str)
+    (let [doc (. Jsoup parse html-str)]
+      (case op
+        :xpath
+        (-> doc (.selectXpath (first op-args)) process-select-result)
+        :css
+        (-> doc (.select (first op-args)) process-select-result)
+        :html->text
+        (-> doc (.text))
+        :regexp
+        (when-let [match (re-find (first op-args) html-str)]
+          (if (vector? match) (second match) match))))))
+
+(defn extract-content [data extractor-chain]
+  (reduce apply-content-extractor data extractor-chain))
 
 (defn common-sites [old-state new-state]
   (->> (concat (:sites old-state) (:sites new-state))

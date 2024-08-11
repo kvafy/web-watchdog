@@ -6,6 +6,62 @@
             [web-watchdog.networking]))
 
 
+(deftest content-extraction-test
+  (let [inner-span-content "World"
+        inner-span-tag     (str "<span id=\"inner\"> " inner-span-content " </span>")
+        outer-span-content (str "Hello" inner-span-tag)
+        outer-span-tag     (str "<span id=\"outer\"> " outer-span-content " </span>")
+        html-doc (str "<html><body>" outer-span-tag)]
+    (testing "single extractor: input already failed (nil), propages error (return nil)"
+      (is (= nil (apply-content-extractor nil [:regexp #"d"]))))
+
+    (testing "single extractor: no match for regexp, returns nil"
+      (is (= nil (apply-content-extractor "abc" [:regexp #"d"]))))
+    (testing "single extractor: no match for css, returns nil"
+      (is (= nil (apply-content-extractor html-doc [:css "#does-not-exist"]))))
+    (testing "single extractor: no match for xpath, returns nil"
+      (is (= nil (apply-content-extractor html-doc [:xpath "//*[@id='does-not-exist']"]))))
+
+    (testing "single extractor: extract regexp without capturing group scans"
+      (is (= "aha!" (apply-content-extractor "potato aha! potato" [:regexp #"aha!"]))))
+    (testing "single extractor: extract regexp with capturing group"
+      (is (= "42" (apply-content-extractor "Price is: $42" [:regexp #"Price is: \$(\d+)"]))))
+
+    (testing "single extractor: extract normalized text from plain non-HTML string"
+      (is (= "World"
+             (apply-content-extractor " World " [:html->text]))))
+    (testing "single extractor: extract normalized text from plain HTML string"
+      (is (= "World"
+             (apply-content-extractor "<br>\n\t World \n\t" [:html->text]))))
+    (testing "single extractor: extract normalized text from leaf HTML element"
+      (is (= inner-span-content
+             (apply-content-extractor inner-span-tag [:html->text]))))
+    (testing "single extractor: extract normalized text from element and its children"
+      (is (= "Hello World"
+             (apply-content-extractor outer-span-content [:html->text]))))
+
+    (testing "single extractor: extract element from HTML fragment as HTML string"
+      (is (= outer-span-content
+             (apply-content-extractor outer-span-tag [:xpath "//span[@id='outer']"])
+             (apply-content-extractor outer-span-tag [:css "#outer"]))))
+    (testing "single extractor: extract element from HTML doc as HTML string"
+      (is (= outer-span-content
+             (apply-content-extractor html-doc [:xpath "//*[@id='outer']"])
+             (apply-content-extractor html-doc [:xpath "//span[@id='outer']"])
+             (apply-content-extractor html-doc [:css "#outer"])
+             (apply-content-extractor html-doc [:css "span#outer"]))))
+
+    (testing "extractor chain: empty chain returns the input"
+      (is (= "data"
+             (extract-content "data" []))))
+    (testing "extractor chain: fails matching mid-way"
+     (is (= nil
+            (extract-content html-doc [[:css "#outer"] [:css "#does-not-exist"] [:css "#inner"]]))))
+    (testing "extractor chain: succeeds"
+      (is (= inner-span-content
+             (extract-content html-doc [[:css "#outer"] [:css "#inner"]]))))))
+
+
 (let [siteA0 (site "a")
       siteA1 (site "a" :content-hash "hashA1")
       siteA2 (site "a" :content-hash "hashA2")
