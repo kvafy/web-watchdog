@@ -18,22 +18,10 @@
          (new java.math.BigInteger 1 (.digest hash-bytes)) ; Positive and the size of the number
          16))) ; Use base16 i.e. hex
 
-(defn update-map-keys
-  "Walks given collection recursively and if encounters a map with
-  given key, applies the given function to the associated value."
-  [col k f]
-  (cond
-    (map? col)
-    (loop [m        col
-           all-keys (keys m)]
-      (if (empty? all-keys)
-        m
-        (let [[k' & ks'] all-keys]
-          (cond
-            (= k' k)       (recur (assoc m k (f (k m))) ks')
-            (coll? (k' m)) (recur (assoc m k' (update-map-keys (k' m) k f)) ks')
-            :else          (recur m ks')))))
-    (coll? col)
-    (into (empty col) (map #(update-map-keys % k f) col))
-    :else
-    col))
+(defn truncate-at-max
+  "Ensure that a string is no longer that the limit"
+  [s limit]
+  (let [size (count s)]
+    (if (> size limit)
+      (str (subs s 0 limit) " ... [truncated total size of " size "]")
+      s)))

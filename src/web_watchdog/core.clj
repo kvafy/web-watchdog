@@ -48,8 +48,9 @@
 (defn check-site [site]
   (let [now (utils/now-utc)
         [data error]  (-> site :url networking/download)
-        hash (some->> data (re-find (:re-pattern site)) utils/md5)
-        changed (and data (not= hash (-> site :state :content-hash)))]
+        content (some-> data (extract-content (get site :content-extractors [])))
+        hash (some-> content utils/md5)
+        changed (and content (not= hash (-> site :state :content-hash)))]
     (cond-> site
       true        (assoc-in [:state :last-check-utc] now)
       true        (assoc-in [:state :last-error-msg] error)

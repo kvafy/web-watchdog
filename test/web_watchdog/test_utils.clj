@@ -21,11 +21,11 @@
                        :last-error-utc  nil
                        :last-error-msg  nil}
         state (merge default-state (apply hash-map args))]
-    {:title      (site-title label)
-     :url        (site-url label)
-     :re-pattern #"(?s).*"
-     :emails     (site-emails label)
-     :state      state}))
+    {:title               (site-title label)
+     :url                 (site-url label)
+     :content-extractors  [[:regexp #"(?s).*"]]
+     :emails              (site-emails label)
+     :state               state}))
 
 (defn set-sites [app-state sites]
   (assoc-in app-state [:sites] sites))

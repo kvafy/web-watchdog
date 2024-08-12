@@ -4,13 +4,9 @@
             [ring.util.response :as response]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.json :refer [wrap-json-response]]
-            [web-watchdog.state :as state]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.persistence :as persistence]
+            [web-watchdog.state :as state]))
 
-(defn process-state [state]
-  (-> state
-      ; Java regular expression instance cannot be converted to JSON
-      (utils/update-map-keys :re-pattern #(.pattern %))))
 
 (defroutes app-routes
   ; redirect to static html file
@@ -18,7 +14,7 @@
     (response/redirect "/index.html"))
   ; AJAX polling of current application state
   (GET "/rest/current-state" []
-    (response/response (process-state @state/app-state)))
+    (response/response (persistence/state-write-preprocess @state/app-state)))
   ; serve all static resources (HTML, CSS, JavaScript)
   (route/files "resources")
   (route/not-found "Not Found"))

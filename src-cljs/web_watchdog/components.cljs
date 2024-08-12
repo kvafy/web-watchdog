@@ -17,11 +17,18 @@
       ^{:key (first kv)} [kv-pair kv])]])
 
 (defn site-tooltip [s]
-  [:dl
-   [:dt "Notifications sent to"]
-   [:dd (clojure.string/join ", " (:emails s))]
-   [:dt "Regexp (Java)"]
-   [:dd (:re-pattern s)]])
+  [:div
+   [:div.tooltip-section
+    [:div.tooltip-key "Notify emails"]
+    [:div.tooltip-value (clojure.string/join ", " (:emails s))]]
+   (when-let [extractors (:content-extractors s)]
+     [:div.tooltip-section
+      [:div.tooltip-key "Content extractor chain"]
+      [:div.tooltip-value
+       (for [[extractor arg] extractors]
+         ^{:key [extractor arg]}
+         [:div extractor
+          (when arg [:span ": " [:span.monospace arg]])])]])])
 
 (defn site [s]
   (let [fails        (-> s :state :fail-counter)

@@ -9,10 +9,13 @@
 (def default-state
   {:sites [#_
            ;; This is how a site is represented.
-           {:title      "European LISP Symposium"
-            :url        "http://www.european-lisp-symposium.org"
-            :re-pattern #"(?s).*"
-            :emails     ["happy@lisper.com"]
+           {:title      "TfL: District line"
+            :url        "https://tfl.gov.uk/tube-dlr-overground/status/"
+            :content-extractors [[:css "#service-status-page-board"]
+                                 [:xpath "//li[@data-line-id='lul-district']"]
+                                 [:css "span.disruption-summary"]
+                                 [:html->text]]
+            :emails     ["my@email.com"]
             :state      {:last-check-utc nil
                          :content-hash   nil
                          :last-change-utc nil
