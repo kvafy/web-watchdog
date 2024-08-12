@@ -1,5 +1,6 @@
 (ns web-watchdog.networking
   (:require [clj-http.client :as client]
+            [clojure.core.memoize :as memo]
             [postal.core]
             [web-watchdog.utils :as utils]))
 
@@ -12,6 +13,9 @@
       (let [err-msg (.toString ex)]
         (utils/log (format "Failed to download [%s] due to: %s" url err-msg))
         [nil err-msg]))))
+
+(def download-with-cache
+  (memo/ttl #'download :ttl/threshold (* 10 1000)))
 
 (defn mail-subject [site change-type]
   (condp = change-type

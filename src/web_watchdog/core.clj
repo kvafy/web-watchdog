@@ -31,7 +31,7 @@
 
 (defn common-sites [old-state new-state]
   (->> (concat (:sites old-state) (:sites new-state))
-       (group-by #(:url %))
+       (group-by #(select-keys % [:url :content-extractors]))
        vals
        (filter #(= 2 (count %)))))
 
@@ -47,7 +47,7 @@
 
 (defn check-site [site]
   (let [now (utils/now-utc)
-        [data error]  (-> site :url networking/download)
+        [data error]  (-> site :url networking/download-with-cache)
         content (some-> data (extract-content (get site :content-extractors [])))
         hash (some-> content utils/md5)
         changed (and content (not= hash (-> site :state :content-hash)))]

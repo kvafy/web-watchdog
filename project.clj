@@ -7,6 +7,7 @@
                  [org.jsoup/jsoup "1.18.1"]
                  [com.draines/postal "2.0.5"]
                  [clj-http "3.1.0"]
+                 [org.clojure/core.memoize "1.1.266"]
                  ; web server
                  [ring/ring-jetty-adapter "1.12.2"]
                  [commons-io/commons-io "2.16.1"]  ;; required dep for ring-core
