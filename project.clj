@@ -9,6 +9,7 @@
                  [clj-http "3.1.0"]
                  [org.clojure/core.memoize "1.1.266"]
                  ; web server
+                 [ring/ring-core "1.12.2"]
                  [ring/ring-jetty-adapter "1.12.2"]
                  [commons-io/commons-io "2.16.1"]  ;; required dep for ring-core
                  [compojure "1.7.1"]
