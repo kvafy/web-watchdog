@@ -7,35 +7,26 @@
 ;; Regexp pattern objects cannot be serialized to JSON/EDN directly.
 ;; Therefore we need to modify state before write / after read.
 
-(defn state-write-preprocess [x]
+(defn- update-state [state vec-updaters]
   (cond
-    (map? x)
-    (update-vals x state-write-preprocess)
+    (map? state)
+    (update-vals state #(update-state % vec-updaters))
 
-    (vector? x)
-    (if (and (<= 2 (count x))
-             (= :regexp (first x)))
-        ; a vector in form `[:regexp <pattern> & rest]`.
-      (update x 1 (fn [^java.util.regex.Pattern p] (.pattern p)))
-      (mapv state-write-preprocess x))
+    (vector? state)
+    (let [[vec-key vec-val] state
+          val-updater (get vec-updaters vec-key)]
+      (if (and vec-val val-updater)
+        (update state 1 val-updater)
+        (mapv #(update-state % vec-updaters) state)))
 
     :else
-    x))
+    state))
 
-(defn state-read-postprocess [x]
-  (cond
-    (map? x)
-    (update-vals x state-read-postprocess)
+(defn state-write-preprocess [state]
+  (update-state state {:regexp (fn [^java.util.regex.Pattern p] (.pattern p))}))
 
-    (vector? x)
-    (if (and (<= 2 (count x))
-             (= :regexp (first x)))
-      ; a vector in form `[:regexp <string> & rest]`.
-      (update x 1 re-pattern)
-      (mapv state-read-postprocess x))
-
-    :else
-    x))
+(defn state-read-postprocess [state]
+  (update-state state {:regexp #(re-pattern %)}))
 
 (defn save-state! [state]
   (as-> state tmp
