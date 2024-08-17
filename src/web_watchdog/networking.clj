@@ -1,6 +1,5 @@
 (ns web-watchdog.networking
   (:require [clj-http.client :as client]
-            [clojure.core.memoize :as memo]
             [postal.core]
             [web-watchdog.utils :as utils]))
 
@@ -15,7 +14,7 @@
         [nil err-msg]))))
 
 (def download-with-cache
-  (memo/ttl #'download :ttl/threshold (* 10 1000)))
+  (utils/memoize-with-ttl #'download (* 10 1000)))
 
 (defn mail-subject [site change-type]
   (condp = change-type
