@@ -18,6 +18,7 @@
             :emails     ["my@email.com"]
             :state      {:last-check-utc nil
                          :content-hash   nil
+                         :content-snippet nil
                          :last-change-utc nil
                          :fail-counter   0
                          :last-error-utc nil

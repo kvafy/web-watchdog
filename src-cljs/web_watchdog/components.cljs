@@ -28,7 +28,11 @@
        (for [[extractor arg] extractors]
          ^{:key [extractor arg]}
          [:div extractor
-          (when arg [:span ": " [:span.monospace arg]])])]])])
+          (when arg [:span ": " [:span.monospace arg]])])]])
+   (when-let [content-snippet (get-in s [:state :content-snippet])]
+     [:div.tooltip-section
+      [:div.tooltip-key "Last successful content"]
+      [:div.tooltip-value content-snippet]])])
 
 (defn site [s]
   (let [fails        (-> s :state :fail-counter)

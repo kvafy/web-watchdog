@@ -55,6 +55,7 @@
       true        (assoc-in [:state :last-check-utc] now)
       true        (assoc-in [:state :last-error-msg] error)
       (not error) (assoc-in [:state :content-hash] hash)
+      (not error) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 200))
       (not error) (assoc-in [:state :fail-counter] 0)
       changed     (assoc-in [:state :last-change-utc] now)
       error       (update-in [:state :fail-counter] inc)
