@@ -12,18 +12,18 @@
 
 (defn apply-content-extractor
   "Each type of extractor takes and produces a string, enabling easy chaining."
-  [html-str [op & op-args]]
+  [html-str [op op-arg]]
   (when-not (nil? html-str)
     (let [doc (. Jsoup parse html-str)]
       (case op
         :xpath
-        (-> doc (.selectXpath (first op-args)) process-select-result)
+        (-> doc (.selectXpath op-arg) process-select-result)
         :css
-        (-> doc (.select (first op-args)) process-select-result)
+        (-> doc (.select op-arg) process-select-result)
         :html->text
         (-> doc (.text))
         :regexp
-        (when-let [match (re-find (first op-args) html-str)]
+        (when-let [match (re-find (re-pattern op-arg) html-str)]
           (if (vector? match) (second match) match))))))
 
 (defn extract-content [data extractor-chain]

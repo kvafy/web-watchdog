@@ -4,7 +4,6 @@
             [ring.util.response :as response]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.json :refer [wrap-json-response]]
-            [web-watchdog.persistence :as persistence]
             [web-watchdog.state :as state]))
 
 
@@ -14,7 +13,7 @@
     (response/redirect "/index.html"))
   ; AJAX polling of current application state
   (GET "/rest/current-state" []
-    (response/response (persistence/state-write-preprocess @state/app-state)))
+    (response/response @state/app-state))
   ; serve all static resources (HTML, CSS, JavaScript)
   (route/files "resources")
   (route/not-found "Not Found"))
