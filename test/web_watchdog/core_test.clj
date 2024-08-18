@@ -3,7 +3,8 @@
             [web-watchdog.core :refer :all]
             [web-watchdog.state :refer [default-state]]
             [web-watchdog.test-utils :refer :all]
-            [web-watchdog.networking]))
+            [web-watchdog.networking]
+            [web-watchdog.utils :as utils]))
 
 
 (deftest content-extraction-test
@@ -109,25 +110,28 @@
     (testing "Site becomes available, consider as no change."
       (is (= nil (site-change-type siteF2 siteF0))))))
 
+
 (deftest check-site-test
   (let [check-time 123456]
     (with-redefs [web-watchdog.utils/now-utc
                   (fn [] check-time)]
       (testing "successful download with content change"
-        (let [siteWithError (build-site
-                             "originally with error"
-                             {:state {:content-hash   "old-hash"
-                                      :fail-counter   5
-                                      :last-error-msg "download failed"}})]
-          (with-redefs [clojure.java.io/reader
-                        (fn [_] (reader-for-string! "downloaded content"))
-                        web-watchdog.networking/download
-                        (fn [_] ["downloaded content" nil])]
-            (let [siteOK (check-site siteWithError)]
+        (let [site-data "downloaded-content"
+              site-with-error (build-site
+                               "originally with error"
+                               {:state {:content-hash   "old-hash"
+                                        :content-snippet "old-content-snipet"
+                                        :fail-counter   5
+                                        :last-error-msg "download failed"}})]
+          (with-redefs [web-watchdog.networking/download
+                        (fn [_] [site-data nil])]
+            (let [siteOK (check-site site-with-error)]
               (testing "time of check is updated"
                 (is (= check-time (get-in siteOK [:state :last-check-utc]))))
               (testing "hash of site content is updated"
                 (is (not= "old-hash" (get-in siteOK [:state :content-hash]))))
+              (testing "content snippet of site content is updated"
+                (is (= site-data (get-in siteOK [:state :content-snippet]))))
               (testing "last change timestamp is updated"
                 (is (= check-time (get-in siteOK [:state :last-change-utc]))))
               (testing "fail counter and error message is reset"
@@ -135,57 +139,106 @@
                 (is (= nil (get-in siteOK [:state :last-error-msg]))))
               (testing "last error timestamp remains untouched"
                 (is (= nil
-                       (get-in siteWithError [:state :last-error-utc])
+                       (get-in site-with-error [:state :last-error-utc])
                        (get-in siteOK [:state :last-error-utc]))))))))
       (testing "successful download without content change"
-        (let [siteStatic (build-site
-                          "originally with error"
-                          {:state {:content-hash    (web-watchdog.utils/md5 "downloaded content")
-                                   :fail-counter    5
-                                   :last-error-msg  "download failed"}})]
+        (let [site-data "downloaded-content"
+              site-static (build-site
+                           "originally with error"
+                           {:state {:content-hash    (web-watchdog.utils/md5 site-data)
+                                    :content-snippet site-data
+                                    :fail-counter    5
+                                    :last-error-msg  "download failed"}})]
           (with-redefs [web-watchdog.networking/download
-                        (fn [_] ["downloaded content" nil])]
-            (let [siteOK (check-site siteStatic)]
+                        (fn [_] [site-data nil])]
+            (let [site-ok (check-site site-static)]
               (testing "time of check is updated"
-                (is (= check-time (get-in siteOK [:state :last-check-utc]))))
+                (is (= check-time (get-in site-ok [:state :last-check-utc]))))
               (testing "hash of site content remains untouched" ;; more of a precondition of the test
-                (is (= (get-in siteStatic [:state :content-hash])
-                       (get-in siteOK [:state :content-hash]))))
+                (is (= (get-in site-static [:state :content-hash])
+                       (get-in site-ok [:state :content-hash]))))
+              (testing "site content snippet remains untouched" ;; more of a precondition of the test
+                (is (= (get-in site-static [:state :content-snippet])
+                       (get-in site-ok [:state :content-snippet]))))
               (testing "last change timestamp remains untouched"
                 (is (= nil
-                       (get-in siteStatic [:state :last-change-utc])
-                       (get-in siteOK [:state :last-change-utc]))))
+                       (get-in site-static [:state :last-change-utc])
+                       (get-in site-ok [:state :last-change-utc]))))
               (testing "fail counter and error message is reset"
-                (is (= 0 (get-in siteOK [:state :fail-counter])))
-                (is (= nil (get-in siteOK [:state :last-error-msg]))))
+                (is (= 0 (get-in site-ok [:state :fail-counter])))
+                (is (= nil (get-in site-ok [:state :last-error-msg]))))
               (testing "last error timestamp remains untouched"
                 (is (= nil
-                       (get-in siteStatic [:state :last-error-utc])
-                       (get-in siteOK [:state :last-error-utc]))))))))
+                       (get-in site-static [:state :last-error-utc])
+                       (get-in site-ok [:state :last-error-utc]))))))))
       (testing "failed download"
-        (let [siteOK (build-site
-                      "originally without any error"
-                      {:state {:last-check-utc 0
-                               :content-hash   "old-hash"
-                               :fail-counter   0
-                               :last-error-msg nil}})]
+        (let [site-ok (build-site
+                       "originally without any error"
+                       {:state {:last-check-utc  0
+                                :content-hash    "old-hash"
+                                :content-snippet "old-content-snipet"
+                                :fail-counter    0
+                                :last-error-msg  nil}})]
           (with-redefs [web-watchdog.networking/download
                         (fn [_] [nil "download failed"])]
-            (let [siteWithError (check-site siteOK)]
+            (let [site-with-error (check-site site-ok)]
               (testing "time of check is updated"
-                (is (= check-time (get-in siteWithError [:state :last-check-utc]))))
+                (is (= check-time (get-in site-with-error [:state :last-check-utc]))))
               (testing "hash of site content remains untouched"
                 (is (= "old-hash"
-                       (get-in siteOK [:state :content-hash])
-                       (get-in siteWithError [:state :content-hash]))))
+                       (get-in site-ok [:state :content-hash])
+                       (get-in site-with-error [:state :content-hash]))))
+              (testing "content snippet remains untouched"
+                (is (= "old-content-snipet"
+                       (get-in site-ok [:state :content-snippet])
+                       (get-in site-with-error [:state :content-snippet]))))
               (testing "last change timestamp remains untouched"
                 (is (= nil
-                       (get-in siteOK [:state :last-change-utc])
-                       (get-in siteWithError [:state :last-change-utc]))))
+                       (get-in site-ok [:state :last-change-utc])
+                       (get-in site-with-error [:state :last-change-utc]))))
               (testing "fail counter increased"
-                (is (= 1 (get-in siteWithError [:state :fail-counter]))))
+                (is (= 1 (get-in site-with-error [:state :fail-counter]))))
               (testing "last error timestamp is updated"
-                (is (= check-time (get-in siteWithError [:state :last-error-utc]))))
+                (is (= check-time (get-in site-with-error [:state :last-error-utc]))))
               (testing "error message is saved"
-                (is (not= nil (get-in siteWithError [:state :last-error-msg])))
-                (is (string? (get-in siteWithError [:state :last-error-msg])))))))))))
+                (is (not= nil (get-in site-with-error [:state :last-error-msg])))
+                (is (string? (get-in site-with-error [:state :last-error-msg]))))))))
+      (testing "all content extractors"
+        (let [extracted-data "Extracted data"
+              site-html-data (str "<html><body>"
+                                  "<p>Ignore this"
+                                  "  <span id='data'>" extracted-data "</span>"
+                                  "</p>"
+                                  "</body></html>")]
+          (with-redefs [web-watchdog.networking/download
+                        (fn [_] [site-html-data nil])]
+            (testing "CSS selector"
+              (let [site-before (build-site
+                                 "with CSS selector"
+                                 {:content-extractors [[:css "#data"]]})]
+                (let [site-ok (check-site site-before)]
+                  (testing "content snippet of site content is updated"
+                    (is (= extracted-data (get-in site-ok [:state :content-snippet]))))
+                  (testing "hash of site content is updated"
+                    (is (= (utils/md5 extracted-data)
+                           (get-in site-ok [:state :content-hash])))))))
+            (testing "XPath selector"
+              (let [site-before (build-site
+                                 "with XPath selector"
+                                 {:content-extractors [[:xpath "//span[@id='data']"]]})]
+                (let [site-ok (check-site site-before)]
+                  (testing "content snippet of site content is updated"
+                    (is (= extracted-data (get-in site-ok [:state :content-snippet]))))
+                  (testing "hash of site content is updated"
+                    (is (= (utils/md5 extracted-data)
+                           (get-in site-ok [:state :content-hash])))))))
+            (testing "regexp"
+              (let [site-before (build-site
+                                 "with regexp selector"
+                                 {:content-extractors [[:regexp "<span id='data'>(.*)</span>"]]})]
+                (let [site-ok (check-site site-before)]
+                  (testing "content snippet of site content is updated"
+                    (is (= extracted-data (get-in site-ok [:state :content-snippet]))))
+                  (testing "hash of site content is updated"
+                    (is (= (utils/md5 extracted-data)
+                           (get-in site-ok [:state :content-hash])))))))))))))
