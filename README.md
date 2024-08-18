@@ -1,20 +1,30 @@
 # web-watchdog
 
 Web-watchdog is a utility that watches given websites (URLs in general) for
-changes and availability. The interesting portion of the URL content (HTML,
-JSON etc.) is defined by a regular expression and changes of the website are
-being watched only in context of the portion matched by the regular expression.
+content changes and availability, and sends out email notifications when the
+content changes or site goes down.
+
+The watched portion of the website content can be defined by CSS and XPath
+selectors, regular expressions, or their arbitrary combinations.
+
+Example use cases:
+
+* New articles on a blog or podcast.
+* Disruptions of public transport links that are relevant to me.
+* Price changes and discounts.
+* ...
 
 Used technologies:
 
 * Languages: Clojure, ClojureScript, JavaScript
+* Server: JSoup, Ring, Jetty
 * UI: React.js, Reagent, jQuery, Bootstrap
 
 ## Prerequisites
 
 * Java Runtime Environment
-* Leiningen (build tool for clojure)
-* sendmail executable on the PATH and configured
+* Leiningen (build tool for Clojure)
+* *sendmail* executable on the PATH and configured
   ([gmail configuration](https://www.tutorialspoint.com/configure-sendmail-with-gmail-on-ubuntu))
 
 ## Running
@@ -33,8 +43,43 @@ Open http://localhost:8080 in your browser.
 
 ## Configuration
 
-Configuration and state is contained in *state.edn* file, which is created in the current working directory during the first run.
+Configuration and state is contained in *state.edn* file, which is created in
+the current working directory during the first run.
 
-To register a website for watching or to modify definitions of already watched sites, edit the *state.edn* file. See comment in *src/web_watchdog/state.clj* to understand structure/format of the *state.edn* file.
+To register a website for watching or to modify definitions of already watched
+sites, edit the *state.edn* file. See comment in *src/web_watchdog/state.clj*
+to understand structure/format of the *state.edn* file.
 
-The application requires a restart for the changes to take effect.
+The application requires a restart for config changes to take effect.
+
+The `:content-extractors` field in a site defines a sequence of extractors that
+are applied to the website HTML to narrow down the checked content and can be
+configured with the following entries:
+
+* `[:css "<selector>"]` narrows down the current content by a CSS selector.
+* `[:xpath "<selector>"]` narrows down the current content by an XPath
+  selector.
+* `[:html->text]` extracts normalized plain text from the current HTML 
+  element(s) and all their children.
+* `[:regexp "<regexp>"]` narrows down the current content to the first match
+  of the regex. If the regex contains a capturing group, contents of the group
+  is taken instead.
+* If the `:content-extractors` field is omitted, the whole website is checked.
+
+Examples:
+
+* Check the whole contents of the URL (equivalent to not specifying the
+  `:content-extractors` field):
+  ```
+  :content-extractors [[:regexp ".*"]]
+  ```
+  
+* Extract item price (first narrow down to the right element using CSS
+  selectors, extract the plaintext from possibly nested HTML elements,
+  and finally carve out the number from *"Only $56.99"* string):
+  ```
+  :content-extractors [[:css "#content"]
+                       [:css "#price"]
+                       [:html->text]
+                       [:regexp "Only \\$([0-9.]+)"]]
+  ```
