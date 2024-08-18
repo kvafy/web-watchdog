@@ -16,6 +16,7 @@
                                  [:css "span.disruption-summary"]
                                  [:html->text]]
             :emails     ["my@email.com"]
+            :schedule   "0 0 9 * * *"
             :state      {:last-check-utc nil
                          :content-hash   nil
                          :content-snippet nil
@@ -24,7 +25,8 @@
                          :last-error-utc nil
                          :last-error-msg nil}}]
    ;; Global configuration.
-   :config {:check-interval-ms (* 1000 60 60)}})
+   :config {:default-schedule "0 0 9 * * *"
+            :timezone "Europe/London"}})
 
 
 ;; state change listeners

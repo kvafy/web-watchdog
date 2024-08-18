@@ -2,9 +2,11 @@
   (:require [clojure.test :refer :all]
             [web-watchdog.core :refer :all]
             [web-watchdog.state :refer [default-state]]
-            [web-watchdog.test-utils :refer :all]
+            [web-watchdog.test-utils :refer [build-site set-sites]]
             [web-watchdog.networking]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.utils :as utils])
+  (:import [java.time Instant]
+           [java.time.temporal ChronoUnit]))
 
 
 (deftest content-extraction-test
@@ -109,6 +111,37 @@
       (is (= nil (site-change-type siteF1 siteF2))))
     (testing "Site becomes available, consider as no change."
       (is (= nil (site-change-type siteF2 siteF0))))))
+
+
+(deftest cron-scheduling
+  (let [hourly            "0 0 * * * *"
+        daily-at-midnight "0 0 0 * * *"
+        midnight     (Instant/parse "2024-01-01T00:00:00Z")
+        midnight+1h  (. midnight (plus 1 ChronoUnit/HOURS))
+        midnight+24h (. midnight (plus 24 ChronoUnit/HOURS))
+        midnight+48h (. midnight (plus 48 ChronoUnit/HOURS))
+        site-hourly (build-site "hourly-schedule" {:schedule hourly, :state {:last-check-utc (. midnight toEpochMilli)}})
+        site-daily (build-site "default-daily-schedule" {:state {:last-check-utc (. midnight toEpochMilli)}})
+        global-config {:default-schedule daily-at-midnight, :timezone "UTC"}]
+    (testing next-check-time
+      (is (= (. midnight+1h toEpochMilli)
+             (next-check-time site-hourly global-config)))
+      (is (= (. midnight+24h toEpochMilli)
+             (next-check-time site-daily global-config))))
+    (testing due-for-check?
+      (testing "no - check just happened"
+        (with-redefs [utils/now-utc (fn [] (. midnight toEpochMilli))]
+          (is (false? (due-for-check? site-hourly global-config)))
+          (is (false? (due-for-check? site-daily global-config)))))
+      (testing "no - due in the future"
+        (with-redefs [utils/now-utc (fn [] (. midnight+1h toEpochMilli))]
+          (is (false? (due-for-check? site-daily global-config)))))
+      (testing "yes - due this exact millisecond"
+        (with-redefs [utils/now-utc (fn [] (. midnight+24h toEpochMilli))]
+          (is (true? (due-for-check? site-daily global-config)))))
+      (testing "yes - overdue"
+        (with-redefs [utils/now-utc (fn [] (. midnight+48h toEpochMilli))]
+          (is (true? (due-for-check? site-daily global-config))))))))
 
 
 (deftest check-site-test

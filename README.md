@@ -1,11 +1,14 @@
 # web-watchdog
 
-Web-watchdog is a utility that watches given websites (URLs in general) for
-content changes and availability, and sends out email notifications when the
-content changes or site goes down.
+*Web-watchdog* is a utility with a web front-end that checks configured set of
+websites (URLs in general) for changes of content and/or availability, sneding
+email notifications when the content changes or site goes down.
 
-The watched portion of the website content can be defined by CSS and XPath
-selectors, regular expressions, or their arbitrary combinations.
+Each website can be checked according to a custom schedule defined with a
+[CRON expression](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/scheduling/support/CronExpression.html#parse(java.lang.String)).
+
+The watched portion of a website content can be narrowed down by CSS and
+XPath selectors, regular expressions, or their arbitrary combinations.
 
 Example use cases:
 

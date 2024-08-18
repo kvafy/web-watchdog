@@ -10,10 +10,14 @@
   (let [runnable
           (fn []
             (loop []
-              (utils/log "Checking all sites")
-              (swap! state/app-state update-in [:sites] core/check-sites)
-              (Thread/sleep (get-in @state/app-state [:config :check-interval-ms]))
-              (recur)))]
+              (let [{:keys [sites config]} @state/app-state
+                    next-check-utc (->> sites (map #(core/next-check-time % config)) (apply min))
+                    wait-ms (- next-check-utc (utils/now-utc))]
+                (when (pos? wait-ms)
+                  (utils/log (format "Sleeping until %s (for %dms) to perform the next check" (utils/millis-to-zoned-time next-check-utc) wait-ms))
+                  (Thread/sleep wait-ms))
+                (swap! state/app-state update-in [:sites] #(core/check-due-sites % config))
+                (recur))))]
     (doto (java.lang.Thread. runnable)
           (.setName "watcher-thread")
           (.setDaemon true)

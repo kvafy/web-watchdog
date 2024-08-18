@@ -5,9 +5,9 @@
 
 (defn kv-pair [kv]
   (let [[k v] (utils/transform-kv-pair kv)]
-    [:div
-     [:dt k]
-     [:dd v]]))
+    [:div.v-margin
+     [:span k] ": "
+     [:span.monospace v]]))
 
 (defn configuration []
   [:div {:class "col-xs-12"}
@@ -21,18 +21,22 @@
    [:div.tooltip-section
     [:div.tooltip-key "Notify emails"]
     [:div.tooltip-value (clojure.string/join ", " (:emails s))]]
+   (let [schedule (get s :schedule "<default>")]
+     [:div.tooltip-section
+      [:div.tooltip-key "Schedule"]
+      [:div.tooltip-value [:span.monospace schedule]]])
    (when-let [extractors (:content-extractors s)]
      [:div.tooltip-section
       [:div.tooltip-key "Content extractor chain"]
       [:div.tooltip-value
        (for [[extractor arg] extractors]
          ^{:key [extractor arg]}
-         [:div extractor
+         [:div.v-margin extractor
           (when arg [:span ": " [:span.monospace arg]])])]])
    (when-let [content-snippet (get-in s [:state :content-snippet])]
      [:div.tooltip-section
       [:div.tooltip-key "Last successful content"]
-      [:div.tooltip-value content-snippet]])])
+      [:div.tooltip-value [:span.monospace content-snippet]]])])
 
 (defn site [s]
   (let [fails        (-> s :state :fail-counter)

@@ -1,8 +1,13 @@
-(ns web-watchdog.utils)
+(ns web-watchdog.utils
+  (:import [java.time Instant ZoneId]))
 
 (defn log [msg]
   (printf "[%s] %s\n" (java.util.Date.) msg)
   (flush))
+
+(defn millis-to-zoned-time [millis]
+  (let [tz (ZoneId/systemDefault)]
+    (.. (Instant/ofEpochMilli millis) (atZone tz))))
 
 (defn now-utc []
   (System/currentTimeMillis))

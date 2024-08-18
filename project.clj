@@ -5,6 +5,7 @@
   :aot [web-watchdog.server]
   :dependencies [[org.clojure/clojure "1.11.4"]
                  [org.jsoup/jsoup "1.18.1"]
+                 [org.springframework/spring-context "5.3.39"]  ;; CRON expressions
                  [com.draines/postal "2.0.5"]
                  [clj-http "3.1.0"]
                  ; web server

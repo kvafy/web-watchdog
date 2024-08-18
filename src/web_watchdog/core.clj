@@ -1,5 +1,6 @@
 (ns web-watchdog.core
   (:require [web-watchdog.networking :as networking]
+            [web-watchdog.scheduling :as scheduling]
             [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
 
@@ -46,6 +47,7 @@
       :else nil)))
 
 (defn check-site [site]
+  (utils/log (format "Checking site [%s] ..." (:title site)))
   (let [now (utils/now-utc)
         [data error]  (-> site :url networking/download-with-cache)
         content (some-> data (extract-content (get site :content-extractors [])))
@@ -61,8 +63,27 @@
       error       (update-in [:state :fail-counter] inc)
       error       (assoc-in [:state :last-error-utc] now))))
 
-(defn check-sites [sites]
-  (reduce (fn [res-sites site]
-            (conj res-sites (check-site site)))
-          []
-          sites))
+(defn next-check-time [site global-config]
+  (let [last-check-utc (get-in site [:state :last-check-utc])]
+    (if (nil? last-check-utc)
+      (utils/now-utc)
+      (let [schedule (or (get site :schedule) (get global-config :default-schedule))
+            tz (get global-config :timezone "UTC")
+            next-check-utc (scheduling/next-cron-time last-check-utc schedule tz)]
+        next-check-utc))))
+
+(defn due-for-check? [site global-config]
+  (let [next-check-utc (next-check-time site global-config)
+        now-utc (utils/now-utc)]
+    (<= next-check-utc now-utc)))
+
+(defn check-sites [pred sites]
+  (mapv (fn [site]
+          (if (pred site) (check-site site) site))
+        sites))
+
+(defn check-all-sites [sites]
+  (check-sites (constantly true) sites))
+
+(defn check-due-sites [sites global-config]
+  (check-sites #(due-for-check? % global-config) sites))
