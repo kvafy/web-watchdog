@@ -1,8 +1,8 @@
 (ns web-watchdog.core-test
-  (:require [web-watchdog.core :refer :all]
+  (:require [clojure.test :refer :all]
+            [web-watchdog.core :refer :all]
             [web-watchdog.state :refer [default-state]]
             [web-watchdog.test-utils :refer :all]
-            [clojure.test :refer :all]
             [web-watchdog.networking]))
 
 
@@ -62,15 +62,15 @@
              (extract-content html-doc [[:css "#outer"] [:css "#inner"]]))))))
 
 
-(let [siteA0 (site "a")
-      siteA1 (site "a" :content-hash "hashA1")
-      siteA2 (site "a" :content-hash "hashA2")
-      siteB0 (site "b")
-      siteB1 (site "b" :content-hash "hashB1")
+(let [siteA0 (build-site "a")
+      siteA1 (build-site "a" {:state {:content-hash "hashA1"}})
+      siteA2 (build-site "a" {:state {:content-hash "hashA2"}})
+      siteB0 (build-site "b")
+      siteB1 (build-site "b" {:state {:content-hash "hashB1"}})
       ; failing site
-      siteF0 (site "f")
-      siteF1 (site "f" :fail-counter 1)
-      siteF2 (site "f" :fail-counter 2)]
+      siteF0 (build-site "f")
+      siteF1 (build-site "f" {:state {:fail-counter 1}})
+      siteF2 (build-site "f" {:state {:fail-counter 2}})]
 
   (deftest common-sites-test
     (testing "Set of sites remains the same"
@@ -114,10 +114,11 @@
     (with-redefs [web-watchdog.utils/now-utc
                   (fn [] check-time)]
       (testing "successful download with content change"
-        (let [siteWithError (site "originally with error"
-                                  :content-hash   "old-hash"
-                                  :fail-counter   5
-                                  :last-error-msg "download failed")]
+        (let [siteWithError (build-site
+                             "originally with error"
+                             {:state {:content-hash   "old-hash"
+                                      :fail-counter   5
+                                      :last-error-msg "download failed"}})]
           (with-redefs [clojure.java.io/reader
                         (fn [_] (reader-for-string! "downloaded content"))
                         web-watchdog.networking/download
@@ -137,10 +138,11 @@
                        (get-in siteWithError [:state :last-error-utc])
                        (get-in siteOK [:state :last-error-utc]))))))))
       (testing "successful download without content change"
-        (let [siteStatic (site "originally with error"
-                               :content-hash    (web-watchdog.utils/md5 "downloaded content")
-                               :fail-counter    5
-                               :last-error-msg  "download failed")]
+        (let [siteStatic (build-site
+                          "originally with error"
+                          {:state {:content-hash    (web-watchdog.utils/md5 "downloaded content")
+                                   :fail-counter    5
+                                   :last-error-msg  "download failed"}})]
           (with-redefs [web-watchdog.networking/download
                         (fn [_] ["downloaded content" nil])]
             (let [siteOK (check-site siteStatic)]
@@ -161,11 +163,12 @@
                        (get-in siteStatic [:state :last-error-utc])
                        (get-in siteOK [:state :last-error-utc]))))))))
       (testing "failed download"
-        (let [siteOK (site "originally without any error"
-                           :last-check-utc 0
-                           :content-hash   "old-hash"
-                           :fail-counter   0
-                           :last-error-msg nil)]
+        (let [siteOK (build-site
+                      "originally without any error"
+                      {:state {:last-check-utc 0
+                               :content-hash   "old-hash"
+                               :fail-counter   0
+                               :last-error-msg nil}})]
           (with-redefs [web-watchdog.networking/download
                         (fn [_] [nil "download failed"])]
             (let [siteWithError (check-site siteOK)]
