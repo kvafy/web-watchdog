@@ -34,7 +34,7 @@
     (map (fn [[old-site new-site]]
            (when-let [change-type (core/site-change-type old-site new-site)]
              (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
-             (networking/notify-site-changed! new-site change-type)))
+             (networking/notify-site-changed! old-site new-site change-type)))
          ; filter out change of type "site added/removed from watched sites list"
          (core/common-sites old-state new-state))))
 

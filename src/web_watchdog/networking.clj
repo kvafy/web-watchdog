@@ -1,5 +1,6 @@
 (ns web-watchdog.networking
   (:require [clj-http.client :as client]
+            [hiccup.util :refer [escape-html]]
             [postal.core]
             [web-watchdog.utils :as utils]))
 
@@ -23,15 +24,27 @@
     :site-failing
       (format "[Web-watchdog site down] %s" (:title site))))
 
-(defn mail-body [site change-type]
+(defn mail-body [old-site new-site change-type]
   (condp = change-type
     :content-changed
-      (format "There seems to be something new on %s.\nCheck out %s." (:title site) (:url site))
+      [{:type "text/html"
+        :content (str "<html>"
+                      "<head>"
+                      "  <style>"
+                      "    p:not(:first-of-type) {margin-top: 1em;}"
+                      "    .content {font-family: roboto; background-color: #eee; padding: 4px; border-radius: 4px;}"
+                      "  </style>"
+                      "</head>"
+                      "<body>"
+                      "<p>" (format "There seems to be something new on <a href='%s'>%s</a>." (:url new-site) (escape-html (:title new-site))) "</p>"
+                      (format "<p>Previous content: <span class='content'>%s</span></p>" (escape-html (-> old-site :state :content-snippet)))
+                      (format "<p>New content: <span class='content'>%s</span></p>" (escape-html (-> new-site :state :content-snippet)))
+                      "</body>")}]
     :site-failing
-      (format "Site %s at %s is failing." (:title site) (:url site))))
+      (format "Site %s at %s is failing." (:title new-site) (:url new-site))))
 
-(defn notify-site-changed! [site change-type]
-  (when (not-empty (:emails site))
+(defn notify-site-changed! [old-site new-site change-type]
+  (when (not-empty (:emails new-site))
     (postal.core/send-message
      {:host "smtp.gmail.com"
       :user (System/getenv "MAILER_USER")
@@ -39,6 +52,6 @@
       :port 587
       :tls true}
      {:from "mailer@webwatchdog.com"
-      :to (:emails site)
-      :subject (mail-subject site change-type)
-      :body (mail-body site change-type)})))
+      :to (:emails new-site)
+      :subject (mail-subject new-site change-type)
+      :body (mail-body old-site new-site change-type)})))
