@@ -4,15 +4,24 @@
             [postal.core]
             [web-watchdog.utils :as utils]))
 
-(defn download [url]
-  (let [cm (java.net.CookieManager.)]
-    (java.net.CookieHandler/setDefault cm))
-  (try
-    [(-> url (client/get {:insecure? true}) :body) nil]
-    (catch java.lang.Exception ex
-      (let [err-msg (.toString ex)]
-        (utils/log (format "Failed to download [%s] due to: %s" url err-msg))
-        [nil err-msg]))))
+(defn download
+  "Downloads contents of the given URL.
+
+   Returns a 2-tuple `[body ex-info]` in which exactly one item is non-nil."
+  [url]
+  (let [opts {:insecure? true  ;; accept self-signed SSL certs
+              }
+        cm (java.net.CookieManager.)]
+    (java.net.CookieHandler/setDefault cm)
+    (try
+      (let [ok-response (client/get url opts)]
+        [(:body ok-response) nil])
+      (catch java.lang.Exception thrown
+        (let [ex-nfo (if (instance? clojure.lang.ExceptionInfo thrown)
+                       thrown
+                       (ex-info (. thrown getMessage) (Throwable->map thrown)))]
+          (utils/log (format "Failed to download [%s] due to: %s" url (ex-message ex-nfo)))
+          [nil ex-nfo])))))
 
 (def download-with-cache
   (utils/memoize-with-ttl #'download (* 10 1000)))

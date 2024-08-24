@@ -49,19 +49,19 @@
 (defn check-site [site]
   (utils/log (format "Checking site [%s] ..." (:title site)))
   (let [now (utils/now-utc)
-        [data error]  (-> site :url networking/download-with-cache)
+        [data ex-nfo]  (-> site :url networking/download-with-cache)
         content (some-> data (extract-content (get site :content-extractors [])))
         hash (some-> content utils/md5)
         changed (and content (not= hash (-> site :state :content-hash)))]
     (cond-> site
-      true        (assoc-in [:state :last-check-utc] now)
-      true        (assoc-in [:state :last-error-msg] error)
-      (not error) (assoc-in [:state :content-hash] hash)
-      (not error) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 200))
-      (not error) (assoc-in [:state :fail-counter] 0)
-      changed     (assoc-in [:state :last-change-utc] now)
-      error       (update-in [:state :fail-counter] inc)
-      error       (assoc-in [:state :last-error-utc] now))))
+      true         (assoc-in [:state :last-check-utc] now)
+      true         (assoc-in [:state :last-error-msg] (ex-message ex-nfo))
+      (not ex-nfo) (assoc-in [:state :content-hash] hash)
+      (not ex-nfo) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 200))
+      (not ex-nfo) (assoc-in [:state :fail-counter] 0)
+      changed      (assoc-in [:state :last-change-utc] now)
+      ex-nfo       (update-in [:state :fail-counter] inc)
+      ex-nfo       (assoc-in [:state :last-error-utc] now))))
 
 (defn next-check-time [site global-config]
   (let [last-check-utc (get-in site [:state :last-check-utc])]

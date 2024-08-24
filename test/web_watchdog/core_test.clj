@@ -213,7 +213,7 @@
                                 :fail-counter    0
                                 :last-error-msg  nil}})]
           (with-redefs [web-watchdog.networking/download
-                        (fn [_] [nil "download failed"])]
+                        (fn [_] [nil (ex-info "download failed" {})])]
             (let [site-with-error (check-site site-ok)]
               (testing "time of check is updated"
                 (is (= check-time (get-in site-with-error [:state :last-check-utc]))))
@@ -235,7 +235,7 @@
                 (is (= check-time (get-in site-with-error [:state :last-error-utc]))))
               (testing "error message is saved"
                 (is (not= nil (get-in site-with-error [:state :last-error-msg])))
-                (is (string? (get-in site-with-error [:state :last-error-msg]))))))))
+                (is (= "download failed" (get-in site-with-error [:state :last-error-msg]))))))))
       (testing "all content extractors"
         (let [extracted-data "Extracted data"
               site-html-data (str "<html><body>"
