@@ -7,13 +7,12 @@
                  [org.jsoup/jsoup "1.18.1"]
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
-                 [clj-http "3.1.0"]
+                 [clj-http "3.13.0"]
                  ; web server
                  [ring/ring-core "1.12.2"]
                  [ring/ring-defaults "0.5.0"]
                  [ring/ring-jetty-adapter "1.12.2"]
                  [ring/ring-json "0.5.1"]
-                 [commons-io/commons-io "2.16.1"]  ;; required dep for ring-core
                  [compojure "1.7.1"]]
   :plugins [[lein-ring "0.12.6"]
             [lein-cljsbuild "1.1.8"]]
