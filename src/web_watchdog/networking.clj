@@ -41,7 +41,7 @@
                       "<head>"
                       "  <style>"
                       "    p:not(:first-of-type) {margin-top: 1em;}"
-                      "    .content {font-family: roboto; background-color: #eee; padding: 4px; border-radius: 4px;}"
+                      "    .content {display: inline-block; font-family: roboto; background-color: #eee; padding: 4px; border: 1px solid #ccc; border-radius: 4px;}"
                       "  </style>"
                       "</head>"
                       "<body>"

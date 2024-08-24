@@ -1,6 +1,28 @@
-#content {transition: all 0.3s;}
-thead td {font-weight: bold;}
-.tooltip-section:not(:first-of-type) {margin-top: 1em;}
-.tooltip-key {font-weight: bold; font-style: italic;}
-.monospace {font-family: monospace; background-color: #eee; padding: 4px; border-radius: 4px;}
-.v-margin {margin-top: 8px; margin-bottom: 8px;}
+#content {
+  transition: all 0.3s;
+}
+
+thead td {
+  font-weight: bold;
+}
+
+.tooltip-section:not(:first-of-type) {
+  margin-top: 1em;
+}
+.tooltip-key {
+  font-weight: bold;
+  font-style: italic;
+}
+
+.monospace {
+  display: inline-block;
+  font-family: monospace;
+  background-color: #eee;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.v-margin {
+  margin-top: 8px; margin-bottom: 8px;
+}
