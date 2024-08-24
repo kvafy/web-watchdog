@@ -69,7 +69,7 @@
       (utils/now-utc)
       (let [schedule (or (get site :schedule) (get global-config :default-schedule))
             tz (get global-config :timezone "UTC")
-            next-check-utc (scheduling/next-cron-time last-check-utc schedule tz)]
+            next-check-utc (scheduling/next-cron-time schedule last-check-utc tz)]
         next-check-utc))))
 
 (defn due-for-check? [site global-config]
