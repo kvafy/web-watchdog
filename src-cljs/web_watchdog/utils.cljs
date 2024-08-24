@@ -36,15 +36,6 @@
             (gstring/format "%.1f %s" value unit)
             (recur next-unit next-value next-conversions)))))))
 
-(defn escape-html [html]
-  (let [esc-map {"&"  "&amp;"
-                 "<"  "&lt;"
-                 ">"  "&gt;"
-                 "\"" "&quot;"
-                 "'"  "&apos;"
-                 "/"  "&#x2F"}]
-    (clojure.string/escape html esc-map)))
-
 (defn keyword-pprint [kw]
   (-> kw
       name
