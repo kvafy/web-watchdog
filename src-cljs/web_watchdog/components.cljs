@@ -56,7 +56,9 @@
           :data-placement "bottom"
           :data-html      "true"
           :title          (:title s)
-          :data-content   (reagent.dom.server/render-to-string (site-tooltip s))}
+          :data-content   (reagent.dom.server/render-to-string (site-tooltip s))
+          ; Works together with `.popover {max-width: ...}` CSS.
+          :container      "#sites-table"}
      [:td
       [:a {:href (:url s)} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
@@ -69,7 +71,7 @@
 (defn sites []
   [:div {:class "col-xs-12"}
    [:h1 "Checked sites"]
-   [:table {:class "table table-hover table-striped"}
+   [:table#sites-table {:class "table table-hover table-striped"}
     [:thead
      [:tr
       [:td "Name"]

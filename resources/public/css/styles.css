@@ -26,3 +26,7 @@ thead td {
 .v-margin {
   margin-top: 8px; margin-bottom: 8px;
 }
+
+.popover {
+  max-width: 80%; /* Relative to the table of checked sites. */
+}
