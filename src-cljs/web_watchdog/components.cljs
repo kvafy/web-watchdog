@@ -60,7 +60,7 @@
           ; Works together with `.popover {max-width: ...}` CSS.
           :container      "#sites-table"}
      [:td
-      [:a {:href (:url s)} (:title s)]]
+      [:a {:href (:url s), :target "_blank"} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
      [:td (utils/utc->date-str (-> s :state :last-change-utc))]
      [:td (utils/utc->date-str (-> s :state :last-error-utc))]
