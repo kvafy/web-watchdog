@@ -36,7 +36,7 @@
 (defn mail-body [old-site new-site change-type]
   (condp = change-type
     :content-changed
-      [{:type "text/html"
+      [{:type "text/html; charset=utf-8"
         :content (str "<html>"
                       "<head>"
                       "  <style>"
