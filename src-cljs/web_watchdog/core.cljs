@@ -29,6 +29,5 @@
   (init-bootstrap!)
   (init-state-refresh!))
 
-; JavaScript start-up actions
-(-> (js/$ js/document)
-    (.on "ready" on-document-ready))
+; JavaScript start-up actions.
+(js/$ on-document-ready) ; Equivalent of jQuery2 `$(document).on('ready', <fn>)`
