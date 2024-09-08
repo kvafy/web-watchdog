@@ -10,7 +10,9 @@
    Returns a 2-tuple `[body ex-info]` in which exactly one item is non-nil."
   [url]
   (let [opts {:insecure? true  ;; accept self-signed SSL certs
-              }
+              :headers
+              ;; Avoid 403 from certain sites.
+              {"User-Agent" "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/13.0.1"}}
         cm (java.net.CookieManager.)]
     (java.net.CookieHandler/setDefault cm)
     (try
