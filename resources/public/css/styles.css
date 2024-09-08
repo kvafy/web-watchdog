@@ -28,5 +28,5 @@ thead td {
 }
 
 .popover {
-  max-width: 80%; /* Relative to the table of checked sites. */
+  max-width: 80% !important; /* Relative to the table of checked sites. */
 }

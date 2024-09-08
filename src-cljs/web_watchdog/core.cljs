@@ -16,7 +16,7 @@
   ; in the HTML at the time of calling this function, but
   ; not for elements added later.
   (-> (js/$ "body")
-      (.popover #js {:selector "[data-toggle='popover']"})))
+      (.popover #js {:selector "[data-bs-toggle='popover']"})))
 
 (defn init-state-refresh! []
   ; Periodically poll for current state.

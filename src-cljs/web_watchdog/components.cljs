@@ -42,23 +42,23 @@
   (let [fails        (-> s :state :fail-counter)
         content-hash (-> s :state :content-hash)
         status (cond (< 0 fails)  {:color-css "text-danger" ; Bootstrap class
-                                   :icon-css  "glyphicon glyphicon-exclamation-sign" ; Bootstrap class
+                                   :icon-css  "bi bi-exclamation-circle" ; Bootstrap class
                                    :text      (str "Last check failed with " (-> s :state :last-error-msg))}
                      content-hash {:color-css "text-success"
-                                   :icon-css  "glyphicon glyphicon-ok-sign"
+                                   :icon-css  "bi bi-check-circle"
                                    :text      "Last check succeeded"}
                      :else        {:color-css "text-muted"
-                                   :icon-css  "glyphicon glyphicon-question-sign"
+                                   :icon-css  "bi bi-question-circle"
                                    :text      "No check performed yet"})]
     [:tr {:class (:tr-class status)
           ; Bootstrap Popover properties
-          :data-toggle    "popover"
-          :data-placement "bottom"
-          :data-html      "true"
-          :title          (:title s)
-          :data-content   (reagent.dom.server/render-to-string (site-tooltip s))
+          :data-bs-toggle   "popover"
+          :data-bs-title    (:title s)
+          :data-bs-content  (reagent.dom.server/render-to-string (site-tooltip s))
+          :data-bs-html     "true"
+          :data-placement   "bottom"
           ; Works together with `.popover {max-width: ...}` CSS.
-          :container      "#sites-table"}
+          :data-container   "#sites-table"}
      [:td
       [:a {:href (:url s), :target "_blank"} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
