@@ -1,6 +1,5 @@
 (ns web-watchdog.scheduling
-  (:import [java.time Duration Instant ZonedDateTime ZoneId]
-           [java.util Date]
+  (:import [java.time Instant ZonedDateTime ZoneId]
            [com.cronutils.parser CronParser]
            [com.cronutils.model CronType]
            [com.cronutils.model.definition CronDefinitionBuilder]

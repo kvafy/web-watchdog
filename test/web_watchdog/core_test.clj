@@ -1,5 +1,5 @@
 (ns web-watchdog.core-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [web-watchdog.core :refer :all]
             [web-watchdog.state :refer [default-state]]
             [web-watchdog.test-utils :refer [build-site set-sites]]
@@ -69,7 +69,6 @@
       siteA1 (build-site "a" {:state {:content-hash "hashA1"}})
       siteA2 (build-site "a" {:state {:content-hash "hashA2"}})
       siteB0 (build-site "b")
-      siteB1 (build-site "b" {:state {:content-hash "hashB1"}})
       ; failing site
       siteF0 (build-site "f")
       siteF1 (build-site "f" {:state {:fail-counter 1}})

@@ -1,7 +1,8 @@
 (ns web-watchdog.state-test
   (:require [web-watchdog.state :refer :all]
             [web-watchdog.test-utils :refer :all]
-            [clojure.test :refer :all]))
+            [postal.core]
+            [clojure.test :refer [deftest is testing]]))
 
 
 (deftest notify-by-email!-test

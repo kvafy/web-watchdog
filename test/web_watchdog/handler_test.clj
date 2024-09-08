@@ -1,5 +1,5 @@
 (ns web-watchdog.handler-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [ring.mock.request :as mock]
             [web-watchdog.handler :refer :all]))
 

@@ -13,4 +13,4 @@
   (try
     (-> state-file slurp edn/read-string)
     ; ok, state simply does not exist
-    (catch java.io.FileNotFoundException ex nil)))
+    (catch java.io.FileNotFoundException _ nil)))

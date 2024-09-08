@@ -1,5 +1,5 @@
 (ns web-watchdog.utils-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [web-watchdog.utils :refer [memoize-with-ttl]]))
 
 (deftest memoize-with-ttl-test

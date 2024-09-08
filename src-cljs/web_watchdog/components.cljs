@@ -1,5 +1,6 @@
 (ns web-watchdog.components
-  (:require [reagent.dom.server]
+  (:require [clojure.string]
+            [reagent.dom.server]
             [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
 

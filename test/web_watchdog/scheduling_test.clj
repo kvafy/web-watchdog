@@ -1,5 +1,5 @@
 (ns web-watchdog.scheduling-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
             [web-watchdog.scheduling :refer [next-cron-time]])
   (:import [java.time Instant]
            [java.time.temporal ChronoUnit]))
