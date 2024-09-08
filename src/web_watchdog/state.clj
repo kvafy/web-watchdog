@@ -1,5 +1,6 @@
 (ns web-watchdog.state
   (:require [web-watchdog.core :as core]
+            [web-watchdog.email :as email]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.networking :as networking]
             [web-watchdog.utils :as utils]))
@@ -31,14 +32,15 @@
 
 ;; state change listeners
 
-(defn notify-by-email! [old-state new-state]
-  (dorun
-    (map (fn [[old-site new-site]]
-           (when-let [change-type (core/site-change-type old-site new-site)]
-             (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
-             (networking/notify-site-changed! old-site new-site change-type)))
+(let [gmail-sender (email/->GmailEmailSender)]
+  (defn notify-by-email! [old-state new-state]
+    (dorun
+     (map (fn [[old-site new-site]]
+            (when-let [change-type (core/site-change-type old-site new-site)]
+              (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
+              (email/notify-site-changed! gmail-sender old-site new-site change-type)))
          ; filter out change of type "site added/removed from watched sites list"
-         (core/common-sites old-state new-state))))
+          (core/common-sites old-state new-state)))))
 
 (defn persist-new-state! [old-state new-state]
   (persistence/save-state! new-state))
