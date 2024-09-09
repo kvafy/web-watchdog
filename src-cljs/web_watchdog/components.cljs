@@ -61,7 +61,7 @@
           ; Works together with `.popover {max-width: ...}` CSS.
           :data-container   "#sites-table"}
      [:td
-      [:a {:href (:url s), :target "_blank"} (:title s)]]
+      [:a {:class "link-light" :href (:url s), :target "_blank"} (:title s)]]
      [:td (utils/utc->date-str (-> s :state :last-check-utc))]
      [:td (utils/utc->date-str (-> s :state :last-change-utc))]
      [:td (utils/utc->date-str (-> s :state :last-error-utc))]
@@ -75,11 +75,11 @@
    [:table#sites-table {:class "table table-hover table-striped"}
     [:thead
      [:tr
-      [:td "Name"]
-      [:td "Last Check"]
-      [:td "Last Change"]
-      [:td "Last Error"]
-      [:td "Status"]]]
+      [:th "Name"]
+      [:th "Last Check"]
+      [:th "Last Change"]
+      [:th "Last Error"]
+      [:th "Status"]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
        ^{:key (:url s)} [site s])]]])

@@ -7,10 +7,6 @@ body {
   transition: all 0.3s;
 }
 
-thead td {
-  font-weight: bold;
-}
-
 .tooltip-section:not(:first-of-type) {
   margin-top: 1em;
 }
@@ -22,9 +18,9 @@ thead td {
 .monospace {
   display: inline-block;
   font-family: monospace;
-  background-color: #eee;
+  background-color: var(--bs-light-bg-subtle);
   padding: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--bs-light-border-subtle);
   border-radius: 4px;
 }
 
