@@ -82,7 +82,7 @@
       [:th "Status"]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
-       ^{:key (:url s)} [site s])]]])
+       ^{:key (:id s)} [site s])]]])
 
 (defn content []
   [:div {:class "row"}

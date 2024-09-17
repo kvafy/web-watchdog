@@ -32,7 +32,7 @@
 
 (defn common-sites [old-state new-state]
   (->> (concat (:sites old-state) (:sites new-state))
-       (group-by #(select-keys % [:url :content-extractors]))
+       (group-by :id)
        vals
        (filter #(= 2 (count %)))))
 

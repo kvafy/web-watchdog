@@ -4,20 +4,15 @@
 (defn reader-for-string! [string]
   (java.io.BufferedReader. (java.io.StringReader. string)))
 
-(defn site-title [label]
-  (format "Site %s" label))
-
-(defn site-url [label]
-  (format "http://site-%s.com" label))
-
 (defn site-emails [label]
   [(format "%s@watcher.com" label)])
 
 (defn build-site
   ([label] (build-site label {}))
   ([label overrides]
-   (let [default-site {:title  (site-title label)
-                       :url    (site-url label)
+   (let [default-site {:id     (format "site-id-%s" label)
+                       :title  (format "Site %s" label)
+                       :url    (format "http://site-%s.com" label)
                        :emails (site-emails label)
                        :state  {:last-check-utc  nil
                                 :content-snippet nil

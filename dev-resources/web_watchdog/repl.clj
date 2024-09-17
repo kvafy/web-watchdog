@@ -1,6 +1,7 @@
 (ns web-watchdog.repl
   (:require [web-watchdog.core :as core]
             [web-watchdog.networking :as networking]
+            [web-watchdog.persistence :as persistence]
             [web-watchdog.state :as state]
             [web-watchdog.server :refer [start-server!]]
             [web-watchdog.utils :as utils])
@@ -20,6 +21,10 @@
     (state/initialize!)
     (start-server! {:port 8080 :join? false}))
 
+  ;; Load a particular state file.
+  (with-redefs [postal.core/send-message mock-send-email]
+    (reset! state/app-state (persistence/load-state "state.edn")))
+
   ;; Force a check of all websites on demand.
   (with-redefs [postal.core/send-message mock-send-email]
     (swap! state/app-state update-in [:sites] core/check-all-sites))
@@ -28,6 +33,19 @@
   (with-redefs [postal.core/send-message mock-send-email]
     (swap! state/app-state update-in [:sites] core/check-due-sites (:config @state/app-state)))
 
+
+  ;; Add the `:id` property to sites that don't have it.
+  (let [state-file "state.edn"
+        add-id (fn [site]
+                 (if (some? (:id site))
+                   (do (printf "Site [%s] already has an :id\n" (:title site))
+                       site)
+                   (do (printf "Adding :id to site [%s]\n" (:title site))
+                       (let [new-id (.toString (java.util.UUID/randomUUID))]
+                         (merge {:id new-id} site)))))]
+    (-> (persistence/load-state state-file)
+        (update-in [:sites] #(mapv add-id %))
+        (persistence/save-state! state-file)))
 
 
   ;; Jsoup playground.

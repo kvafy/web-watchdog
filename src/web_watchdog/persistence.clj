@@ -4,13 +4,13 @@
 
 (def state-file "state.edn")
 
-(defn save-state! [state]
+(defn save-state! [state file-path]
   (as-> state tmp
     (with-out-str (clojure.pprint/pprint tmp))
-    (spit state-file tmp)))
+    (spit file-path tmp)))
 
-(defn load-state []
+(defn load-state [file-path]
   (try
-    (-> state-file slurp edn/read-string)
+    (-> file-path slurp edn/read-string)
     ; ok, state simply does not exist
     (catch java.io.FileNotFoundException _ nil)))

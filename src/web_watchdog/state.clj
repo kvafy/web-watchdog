@@ -10,7 +10,8 @@
 (def default-state
   {:sites [#_
            ;; This is how a site is represented.
-           {:title      "TfL: District line"
+           {:id         "03ce4b54-408d-4e28-898a-aa030188d6e0"
+            :title      "TfL: District line"
             :url        "https://tfl.gov.uk/tube-dlr-overground/status/"
             :content-extractors [[:css "#service-status-page-board"]
                                  [:xpath "//li[@data-line-id='lul-district']"]
@@ -43,7 +44,7 @@
           (core/common-sites old-state new-state)))))
 
 (defn persist-new-state! [old-state new-state]
-  (persistence/save-state! new-state))
+  (persistence/save-state! new-state persistence/state-file))
 
 (def state-listeners
   [notify-by-email! persist-new-state!])
@@ -57,7 +58,7 @@
 ;; other logic
 
 (defn initialize! []
-  (reset! app-state (or (persistence/load-state) default-state)))
+  (reset! app-state (or (persistence/load-state persistence/state-file) default-state)))
 
 (defn register-listeners! []
   (add-watch app-state :on-app-state-change on-app-state-change))
