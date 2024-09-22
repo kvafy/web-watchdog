@@ -74,6 +74,14 @@
       siteF1 (build-site "f" {:state {:fail-counter 1}})
       siteF2 (build-site "f" {:state {:fail-counter 2}})]
 
+  (deftest find-site-by-id-test
+    (let [state (set-sites default-state [siteA0 siteB0])]
+      (testing "Existing sites are found"
+        (is (= [0 siteA0] (find-site-by-id state (:id siteA0))))
+        (is (= [1 siteB0] (find-site-by-id state (:id siteB0)))))
+      (testing "Non-existing site"
+        (is (nil? (find-site-by-id state "non-existent-id"))))))
+
   (deftest common-sites-test
     (testing "Set of sites remains the same"
       (is (= [[siteA0 siteA1]]
@@ -110,37 +118,6 @@
       (is (= nil (site-change-type siteF1 siteF2))))
     (testing "Site becomes available, consider as no change."
       (is (= nil (site-change-type siteF2 siteF0))))))
-
-
-(deftest cron-scheduling
-  (let [hourly            "0 0 * * * *"
-        daily-at-midnight "0 0 0 * * *"
-        midnight     (Instant/parse "2024-01-01T00:00:00Z")
-        midnight+1h  (. midnight (plus 1 ChronoUnit/HOURS))
-        midnight+24h (. midnight (plus 24 ChronoUnit/HOURS))
-        midnight+48h (. midnight (plus 48 ChronoUnit/HOURS))
-        site-hourly (build-site "hourly-schedule" {:schedule hourly, :state {:last-check-utc (. midnight toEpochMilli)}})
-        site-daily (build-site "default-daily-schedule" {:state {:last-check-utc (. midnight toEpochMilli)}})
-        global-config {:default-schedule daily-at-midnight, :timezone "UTC"}]
-    (testing next-check-time
-      (is (= (. midnight+1h toEpochMilli)
-             (next-check-time site-hourly global-config)))
-      (is (= (. midnight+24h toEpochMilli)
-             (next-check-time site-daily global-config))))
-    (testing due-for-check?
-      (testing "no - check just happened"
-        (with-redefs [utils/now-utc (fn [] (. midnight toEpochMilli))]
-          (is (false? (due-for-check? site-hourly global-config)))
-          (is (false? (due-for-check? site-daily global-config)))))
-      (testing "no - due in the future"
-        (with-redefs [utils/now-utc (fn [] (. midnight+1h toEpochMilli))]
-          (is (false? (due-for-check? site-daily global-config)))))
-      (testing "yes - due this exact millisecond"
-        (with-redefs [utils/now-utc (fn [] (. midnight+24h toEpochMilli))]
-          (is (true? (due-for-check? site-daily global-config)))))
-      (testing "yes - overdue"
-        (with-redefs [utils/now-utc (fn [] (. midnight+48h toEpochMilli))]
-          (is (true? (due-for-check? site-daily global-config))))))))
 
 (deftest check-site-test
   (let [check-time 123456]

@@ -17,13 +17,22 @@
    :web-watchdog.web/handler
    {:app-state (ig/ref :web-watchdog.state/app-state)}
 
-   ;; Checks websites according to their configured schedules.
-   ;; Value: {:thread java.lang.Thread, :thread-latch Atom<bool>}
-   :web-watchdog.server/site-checker
-   {:app-state (ig/ref :web-watchdog.state/app-state),
-    :downloader (ig/ref :web-watchdog.networking/web-downloader),
+   ;; Abstraction for checking websites according to their configured
+   ;; schedules, and immediately on demand.
+   ;; Value: web-watchdog.core/SiteChecker
+   :web-watchdog.scheduling/site-checker
+   {:start-cron-schedules? true
+    ;; Deps
+    :app-state (ig/ref :web-watchdog.state/app-state),
+    :download-fn (ig/ref :web-watchdog.networking/web-downloader),
+    :scheduler (ig/ref :web-watchdog.scheduling/scheduler)
     ;; Forced dependency to ensure all observers are initialized.
     :app-state-observers (ig/refset ::app-state-observer)}
+
+   ;; Scheduler for running tasks at specific times.
+   ;; Value: web-watchdog.scheduling/Scheduler
+   :web-watchdog.scheduling/scheduler
+   {:thread-count 4}
 
    ;; Notifies of state changes using the :email-sender.
    ;; Value: {:watched-atom <app-state-atom>}

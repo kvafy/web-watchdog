@@ -3,56 +3,77 @@
             [web-watchdog.core :as core]
             [web-watchdog.networking :as networking]
             [web-watchdog.persistence :as persistence]
+            [web-watchdog.scheduling :as scheduling]
             [web-watchdog.system :as system]
             [web-watchdog.utils :as utils]
             [web-watchdog.test-utils :as test-utils])
-  (:import [java.time Instant LocalDateTime ZoneId]
-           [org.jsoup Jsoup]))
+  (:import [org.jsoup Jsoup]))
+
+;; For the reloaded workflow.
+
+(defonce repl-system nil)
+
+(defn reloaded-start [system-cfg]
+  (when (some? repl-system)
+    (throw (IllegalStateException. "A system already appears to be running.")))
+  (alter-var-root #'repl-system
+                  (fn [_]
+                    (ig/load-namespaces system-cfg)
+                    (ig/init system-cfg)))
+  nil)
+
+(defn reloaded-stop []
+  (when (some? repl-system)
+    (ig/halt! repl-system)
+    (alter-var-root #'repl-system (constantly nil))))
+
 
 (comment
-  ;; Start a web server, but don't automatically check sites.
-  ;; This can easily be combined with a running `lein cljsbuild auto` for UI development.
+  ;; In dev, the system can be started with various modifications (e.g. fake
+  ;; email sender, or without CRON schedules.)
+  ;; If the web serer was started, it can easily be combined with a running
+  ;; `lein cljsbuild auto` for UI development.
 
-  (def system
-    (let [repl-system-cfg (-> system/system-cfg
-                              (test-utils/with-fake-email-sender {:verbose true})
-                              (test-utils/without-site-checker)
-                              )]
-      (ig/load-namespaces repl-system-cfg)
-      (ig/init repl-system-cfg)))
+  (reloaded-start (-> system/system-cfg
+                      (test-utils/with-fake-email-sender {:verbose true})
+                      ;(test-utils/without-cron-schedule)
+                      ))
 
-  (ig/halt! system)
+  (reloaded-stop)
 
-  ;; Trigger a site check.
-  (let [scope :due  ; one of {:all, :due}
-        state-atom (:web-watchdog.state/app-state system)
-        download-fn (:web-watchdog.networking/web-downloader system)]
-    (case scope
-      :all (swap! state-atom update-in [:sites] core/check-all-sites download-fn)
-      :due (swap! state-atom update-in [:sites] core/check-due-sites download-fn (:config @state-atom)))
-    nil)
+
+  ;; Trigger a check of all sites.
+  (let [site-checker (:web-watchdog.scheduling/site-checker repl-system)
+        app-state-atom (:web-watchdog.state/app-state repl-system)]
+    (dorun (->> @app-state-atom
+                :sites
+                (map #(scheduling/check-site-one-shot site-checker (:id %))))))
+
 
   ;; Inspect the history of fakely sent emails.
-  (as-> system $
+  (as-> repl-system $
     (get $ [::system/email-sender ::test-utils/fake-email-sender])
     (get $ :history)
-    (deref $)
+    (deref $) ; `:history` holds an atom
     (map :subject $))
 
-  (do (swap! (::system/app-state system) assoc-in [:sites 0 :state :content-hash] "123")
-      nil)
+  (let [app-state-atom (:web-watchdog.state/app-state repl-system)]
+    (do (swap! app-state-atom assoc-in [:sites 0 :state :content-hash] "123")
+        nil))
 
-  ;; Add the `:id` property to sites that don't have it.
+  ;; Backfill a property to all sites.
   (let [state-file "state.edn"
-        add-id (fn [site]
-                 (if (some? (:id site))
-                   (do (printf "Site [%s] already has an :id\n" (:title site))
-                       site)
-                   (do (printf "Adding :id to site [%s]\n" (:title site))
-                       (let [new-id (.toString (java.util.UUID/randomUUID))]
-                         (merge {:id new-id} site)))))]
+        prop-path [:state :loading?]
+        merge-val-fn (constantly {:state {:loading? false}})
+        backfill-site (fn [site]
+                        (if (some? (get-in site prop-path))
+                          (do (printf "Site '%s' already has '%s' set, skipping\n" (:title site) prop-path)
+                              site)
+                          (do (printf "Adding '%s' to site '%s'\n" prop-path (:title site))
+                              ;; Handles correct both top-level and nested properties.
+                              (merge-with merge site (merge-val-fn)))))]
     (-> (persistence/load-state state-file)
-        (update-in [:sites] #(mapv add-id %))
+        (update-in [:sites] #(mapv backfill-site %))
         (persistence/save-state! state-file)))
 
 
@@ -89,19 +110,5 @@
    (-> "https://www.knihydobrovsky.cz/knihy/serie/legie" (networking/download) (first))
    [[:css ".crossroad-products li:last-of-type .title"]
     [:html->text]])
-
-
-  (let [tz (ZoneId/of "Europe/London")
-        last-check (-> 1723973070578
-                       (Instant/ofEpochMilli)
-                       (.atZone tz))
-        cron (CronExpression/parse "0 */10 7,8,17,18 * * Mon-Fri")]
-    (. cron (next last-check)))
-
-  ;; Weird bug in [clj-cron-parse "0.1.5"] - ignores 7am and 8am.
-  (clj-cron-parse/next-date
-   (clj-time.coerce/from-long 1723973070578)
-   "0 */10 7,8,17,18 * * Mon-Fri"
-   "Europe/London")
 
   (do))

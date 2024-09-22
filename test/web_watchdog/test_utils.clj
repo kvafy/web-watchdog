@@ -55,5 +55,5 @@
        (dissoc [::system/email-sender :web-watchdog.email/gmail-sender])
        (assoc  [::system/email-sender ::fake-email-sender] opts))))
 
-(defn without-site-checker [system-cfg]
-  (dissoc system-cfg :web-watchdog.server/site-checker))
+(defn without-cron-schedule [system-cfg]
+  (assoc-in system-cfg [:web-watchdog.scheduling/site-checker :start-cron-schedules?] false))

@@ -1,7 +1,8 @@
 (ns web-watchdog.core
-  (:require [web-watchdog.scheduling :as scheduling]
-            [web-watchdog.utils :as utils])
+  (:require [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
+
+;; Extracting content from a site.
 
 (defn process-select-result
   "Post-processes the result of Jsoup `select` or `selectXpath` methods.
@@ -29,6 +30,19 @@
 (defn extract-content [data extractor-chain]
   (reduce apply-content-extractor data extractor-chain))
 
+
+;; Checking sites for a change: Core logic.
+
+(defn find-site-by-id
+  "Returns a 2-tuple [index site] when found, nil otherwise.
+
+   `app-state` is plain data structure, not an atom."
+  [app-state site-id]
+  (->> (:sites app-state)
+       (map-indexed (fn [i s] [i s]))
+       (filter (fn [[_ s]] (= site-id (:id s))))
+       first))
+
 (defn common-sites [old-state new-state]
   (->> (concat (:sites old-state) (:sites new-state))
        (group-by :id)
@@ -46,7 +60,6 @@
       :else nil)))
 
 (defn check-site [site download-fn]
-  (utils/log (format "Checking site [%s] ..." (:title site)))
   (let [now (utils/now-utc)
         [data ex-nfo]  (-> site :url download-fn)
         content (some-> data (extract-content (get site :content-extractors [])))
@@ -62,27 +75,14 @@
       ex-nfo       (update-in [:state :fail-counter] inc)
       ex-nfo       (assoc-in [:state :last-error-utc] now))))
 
-(defn next-check-time [site global-config]
-  (let [last-check-utc (get-in site [:state :last-check-utc])]
-    (if (nil? last-check-utc)
-      (utils/now-utc)
-      (let [schedule (or (get site :schedule) (get global-config :default-schedule))
-            tz (get global-config :timezone "UTC")
-            next-check-utc (scheduling/next-cron-time schedule last-check-utc tz)]
-        next-check-utc))))
+;; To be used in concurrent environment (with a scheduler).
 
-(defn due-for-check? [site global-config]
-  (let [next-check-utc (next-check-time site global-config)
-        now-utc (utils/now-utc)]
-    (<= next-check-utc now-utc)))
-
-(defn check-sites [sites pred download-fn]
-  (mapv (fn [site]
-          (if (pred site) (check-site site download-fn) site))
-        sites))
-
-(defn check-all-sites [sites download-fn]
-  (check-sites sites (constantly true) download-fn))
-
-(defn check-due-sites [sites download-fn global-config]
-  (check-sites sites #(due-for-check? % global-config) download-fn))
+(defn check-site-with-lock! [site-id app-state download-fn]
+  (when-let [[site-idx site-old] (find-site-by-id @app-state site-id)]
+    (utils/log (format "Checking site '%s' ..." (:title site-old)))
+    (if-not (utils/compare-and-assoc-in! app-state [:sites site-idx :state :loading?] false true)
+      (utils/log (format "Site '%s' already has an ongoing check, skipping." (:title site-old)))
+      (let [site-new (check-site site-old download-fn)]
+        (swap! app-state #(-> %
+                              (assoc-in [:sites site-idx] site-new)
+                              (assoc-in [:sites site-idx :loading?] false)))))))
