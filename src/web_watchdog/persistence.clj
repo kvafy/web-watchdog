@@ -1,8 +1,7 @@
 (ns web-watchdog.persistence
   (:require [clojure.pprint]
-            [clojure.tools.reader.edn :as edn]))
-
-(def state-file "state.edn")
+            [clojure.tools.reader.edn :as edn]
+            [integrant.core :as ig]))
 
 (defn save-state! [state file-path]
   (as-> state tmp
@@ -14,3 +13,17 @@
     (-> file-path slurp edn/read-string)
     ; ok, state simply does not exist
     (catch java.io.FileNotFoundException _ nil)))
+
+
+;; The application state persister component.
+
+(defmethod ig/init-key ::state-persister [_ {:keys [app-state file-path]}]
+  (add-watch app-state
+             ::state-persister
+             (fn [_ _ old-state new-state]
+               (when (not= old-state new-state)
+                 (save-state! new-state file-path))))
+  {:watched-atom app-state})
+
+(defmethod ig/halt-key! ::state-persister [_ {:keys [watched-atom]}]
+  (remove-watch watched-atom ::state-persister))

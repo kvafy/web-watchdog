@@ -1,9 +1,10 @@
-(defproject web-watchdog "0.2.0-SNAPSHOT"
-  :description "Tool watching a set of websites (URLs) for changes and availability."
+(defproject web-watchdog "0.3.0-SNAPSHOT"
+  :description "Tool watching a set of websites for content changes and availability."
   :url "https://github.com/kvafy/web-watchdog"
   :main web-watchdog.server
   :aot [web-watchdog.server]
   :dependencies [[org.clojure/clojure "1.11.4"]
+                 [integrant "0.11.0"]
                  [org.jsoup/jsoup "1.18.1"]
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
@@ -23,7 +24,6 @@
           {:output-to "resources/public/js/main.js"
            :optimizations :advanced
            :externs ["resources/externs.js"]}}]}
-  :ring {:handler web-watchdog.handler/app}
   :profiles
     {:provided
      {:dependencies [[org.clojure/clojurescript "1.11.132"]
@@ -32,6 +32,6 @@
                      [cljsjs/react-dom "18.2.0-1"] ;; required by reagent
                      ]}
      :dev
-      {:dependencies [[javax.servlet/servlet-api "2.5"]
-                      [ring/ring-devel "1.9.4"]
-                      [ring/ring-mock "0.4.0"]]}})
+      {:dependencies [[ring/ring-mock "0.4.0"]]}
+     :uberjar
+     {:aot :all}})

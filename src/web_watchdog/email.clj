@@ -1,6 +1,11 @@
 (ns web-watchdog.email
   (:require [hiccup.util :refer [escape-html]]
-            [postal.core]))
+            [integrant.core :as ig]
+            [postal.core]
+            [web-watchdog.core :as core]
+            [web-watchdog.utils :as utils]))
+
+;; Generic crafting of email contents.
 
 (defn mail-subject [site change-type]
   (condp = change-type
@@ -32,6 +37,9 @@
          "</body>"
          "</html>")))
 
+
+;; Sending emails through GMail.
+
 (defprotocol EmailSender
   "Abstraction for sending emails"
   (send-email [this to subject body-html]))
@@ -51,9 +59,38 @@
       :body [{:type "text/html; charset=utf-8"
               :content body-html}]})))
 
+(defmethod ig/init-key ::gmail-sender [_ _]
+  {:impl (->GmailEmailSender)})
+
+
+;; Notifying about app state changes and notifying  through email.
+
 (defn notify-site-changed! [sender-impl old-site new-site change-type]
   (when (not-empty (:emails new-site))
     (send-email sender-impl
                 (:emails new-site)
                 (mail-subject new-site change-type)
                 (mail-body-html old-site new-site change-type))))
+
+(defn notify-about-site-changes! [sender-impl old-state new-state]
+  (dorun
+   (map (fn [[old-site new-site]]
+          (when-let [change-type (core/site-change-type old-site new-site)]
+            (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
+            (notify-site-changed! sender-impl old-site new-site change-type)))
+         ; filter out change of type "site added/removed from watched sites list"
+        (core/common-sites old-state new-state))))
+
+
+;; The email notifier component.
+
+(defmethod ig/init-key ::notifier [_ {:keys [app-state email-sender]}]
+  (add-watch app-state
+             ::email-notifier
+             (fn [_ _ old-state new-state]
+               (when (not= old-state new-state)
+                 (notify-about-site-changes! (:impl email-sender) old-state new-state))))
+  {:watched-atom app-state})
+
+(defmethod ig/halt-key! ::notifier [_ {:keys [watched-atom]}]
+  (remove-watch watched-atom ::email-notifier))

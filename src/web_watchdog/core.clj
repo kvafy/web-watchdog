@@ -1,6 +1,5 @@
 (ns web-watchdog.core
-  (:require [web-watchdog.networking :as networking]
-            [web-watchdog.scheduling :as scheduling]
+  (:require [web-watchdog.scheduling :as scheduling]
             [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
 
@@ -46,10 +45,10 @@
       (and (zero? fails) (pos? fails'))  :site-failing
       :else nil)))
 
-(defn check-site [site]
+(defn check-site [site download-fn]
   (utils/log (format "Checking site [%s] ..." (:title site)))
   (let [now (utils/now-utc)
-        [data ex-nfo]  (-> site :url networking/download-with-cache)
+        [data ex-nfo]  (-> site :url download-fn)
         content (some-> data (extract-content (get site :content-extractors [])))
         hash (some-> content utils/md5)
         changed (and content (not= hash (-> site :state :content-hash)))]
@@ -77,13 +76,13 @@
         now-utc (utils/now-utc)]
     (<= next-check-utc now-utc)))
 
-(defn check-sites [pred sites]
+(defn check-sites [sites pred download-fn]
   (mapv (fn [site]
-          (if (pred site) (check-site site) site))
+          (if (pred site) (check-site site download-fn) site))
         sites))
 
-(defn check-all-sites [sites]
-  (check-sites (constantly true) sites))
+(defn check-all-sites [sites download-fn]
+  (check-sites sites (constantly true) download-fn))
 
-(defn check-due-sites [sites global-config]
-  (check-sites #(due-for-check? % global-config) sites))
+(defn check-due-sites [sites download-fn global-config]
+  (check-sites sites #(due-for-check? % global-config) download-fn))

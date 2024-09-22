@@ -1,38 +1,46 @@
 (ns web-watchdog.repl
-  (:require [web-watchdog.core :as core]
+  (:require [integrant.core :as ig]
+            [web-watchdog.core :as core]
             [web-watchdog.networking :as networking]
             [web-watchdog.persistence :as persistence]
-            [web-watchdog.state :as state]
-            [web-watchdog.server :refer [start-server!]]
-            [web-watchdog.utils :as utils])
+            [web-watchdog.system :as system]
+            [web-watchdog.utils :as utils]
+            [web-watchdog.test-utils :as test-utils])
   (:import [java.time Instant LocalDateTime ZoneId]
            [org.jsoup Jsoup]))
 
-
-(defn mock-send-email [_ params]
-  (utils/log (str "Skipping sending an email" (prn params))))
-
-
 (comment
   ;; Start a web server, but don't automatically check sites.
-  ;; This can easily be combined with a running `$ lein cljsbuild auto` for UI development.
-  (do
-    (state/register-listeners!)
-    (state/initialize!)
-    (start-server! {:port 8080 :join? false}))
+  ;; This can easily be combined with a running `lein cljsbuild auto` for UI development.
 
-  ;; Load a particular state file.
-  (with-redefs [postal.core/send-message mock-send-email]
-    (reset! state/app-state (persistence/load-state "state.edn")))
+  (def system
+    (let [repl-system-cfg (-> system/system-cfg
+                              (test-utils/with-fake-email-sender {:verbose true})
+                              (test-utils/without-site-checker)
+                              )]
+      (ig/load-namespaces repl-system-cfg)
+      (ig/init repl-system-cfg)))
 
-  ;; Force a check of all websites on demand.
-  (with-redefs [postal.core/send-message mock-send-email]
-    (swap! state/app-state update-in [:sites] core/check-all-sites))
+  (ig/halt! system)
 
-  ;; Check all due sites.
-  (with-redefs [postal.core/send-message mock-send-email]
-    (swap! state/app-state update-in [:sites] core/check-due-sites (:config @state/app-state)))
+  ;; Trigger a site check.
+  (let [scope :due  ; one of {:all, :due}
+        state-atom (:web-watchdog.state/app-state system)
+        download-fn (:web-watchdog.networking/web-downloader system)]
+    (case scope
+      :all (swap! state-atom update-in [:sites] core/check-all-sites download-fn)
+      :due (swap! state-atom update-in [:sites] core/check-due-sites download-fn (:config @state-atom)))
+    nil)
 
+  ;; Inspect the history of fakely sent emails.
+  (as-> system $
+    (get $ [::system/email-sender ::test-utils/fake-email-sender])
+    (get $ :history)
+    (deref $)
+    (map :subject $))
+
+  (do (swap! (::system/app-state system) assoc-in [:sites 0 :state :content-hash] "123")
+      nil)
 
   ;; Add the `:id` property to sites that don't have it.
   (let [state-file "state.edn"

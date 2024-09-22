@@ -1,5 +1,6 @@
 (ns web-watchdog.networking
   (:require [clj-http.client :as client]
+            [integrant.core :as ig]
             [web-watchdog.utils :as utils]))
 
 (defn download
@@ -23,5 +24,6 @@
           (utils/log (format "Failed to download [%s] due to: %s" url (ex-message ex-nfo)))
           [nil ex-nfo])))))
 
-(def download-with-cache
-  (utils/memoize-with-ttl #'download (* 10 1000)))
+
+(defmethod ig/init-key ::web-downloader [_ {:keys [cache-ttl-ms]}]
+  (utils/memoize-with-ttl #'download cache-ttl-ms))

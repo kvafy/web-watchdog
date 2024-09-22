@@ -1,11 +1,7 @@
 (ns web-watchdog.state
-  (:require [web-watchdog.core :as core]
-            [web-watchdog.email :as email]
+  (:require [integrant.core :as ig]
             [web-watchdog.persistence :as persistence]
-            [web-watchdog.networking :as networking]
             [web-watchdog.utils :as utils]))
-
-(defonce app-state (atom nil))
 
 (def default-state
   {:sites [#_
@@ -31,34 +27,12 @@
             :timezone "Europe/London"}})
 
 
-;; state change listeners
+;; The global application state component.
 
-(let [gmail-sender (email/->GmailEmailSender)]
-  (defn notify-by-email! [old-state new-state]
-    (dorun
-     (map (fn [[old-site new-site]]
-            (when-let [change-type (core/site-change-type old-site new-site)]
-              (utils/log (format "Change of type %s detected at [%s]" change-type (:title new-site)))
-              (email/notify-site-changed! gmail-sender old-site new-site change-type)))
-         ; filter out change of type "site added/removed from watched sites list"
-          (core/common-sites old-state new-state)))))
-
-(defn persist-new-state! [old-state new-state]
-  (persistence/save-state! new-state persistence/state-file))
-
-(def state-listeners
-  [notify-by-email! persist-new-state!])
-
-(defn on-app-state-change [_ _ old-state new-state]
- (when (not= old-state new-state)
-   (doseq [f state-listeners]
-     (f old-state new-state))))
-
-
-;; other logic
-
-(defn initialize! []
-  (reset! app-state (or (persistence/load-state persistence/state-file) default-state)))
-
-(defn register-listeners! []
-  (add-watch app-state :on-app-state-change on-app-state-change))
+(defmethod ig/init-key ::app-state [_ {:keys [file-path]}]
+  (atom
+   (if-let [loaded-state (persistence/load-state file-path)]
+     (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
+         loaded-state)
+     (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
+         default-state))))
