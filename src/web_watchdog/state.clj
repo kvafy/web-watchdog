@@ -21,7 +21,8 @@
                          :last-change-utc nil
                          :fail-counter   0
                          :last-error-utc nil
-                         :last-error-msg nil}}]
+                         :last-error-msg nil
+                         :loading? false}}]
    ;; Global configuration.
    :config {:default-schedule "0 0 9 * * *"
             :timezone "Europe/London"}})

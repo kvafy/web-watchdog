@@ -56,7 +56,7 @@
         fails' (get-in new-site [:state :fail-counter])]
     (cond
       (and hash hash' (not= hash hash')) :content-changed
-      (and (zero? fails) (pos? fails'))  :site-failing
+      (and fails (zero? fails) (pos? fails'))  :site-failing
       :else nil)))
 
 (defn check-site [site download-fn]

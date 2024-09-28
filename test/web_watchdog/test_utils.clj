@@ -20,7 +20,8 @@
                                 :last-change-utc nil
                                 :fail-counter    0
                                 :last-error-utc  nil
-                                :last-error-msg  nil}}]
+                                :last-error-msg  nil
+                                :loading? false}}]
      (merge-with merge default-site overrides))))
 
 (defn set-sites [app-state sites]
