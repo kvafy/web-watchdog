@@ -85,4 +85,4 @@
       (let [site-new (check-site site-old download-fn)]
         (swap! app-state #(-> %
                               (assoc-in [:sites site-idx] site-new)
-                              (assoc-in [:sites site-idx :loading?] false)))))))
+                              (assoc-in [:sites site-idx :state :loading?] false)))))))
