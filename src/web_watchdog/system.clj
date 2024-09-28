@@ -5,7 +5,7 @@
   {;; State of the watched websites (check results, schedule etc.).
    ;; Value: Atom<Map>
    :web-watchdog.state/app-state
-   {:file-path "state.edn"}
+   {:file-path "state.edn", :validate? true}
 
    ;; Web server for the UI.
    ;; Value: org.eclipse.jetty.server.Server

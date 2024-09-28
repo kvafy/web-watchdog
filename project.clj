@@ -5,6 +5,7 @@
   :aot [web-watchdog.server]
   :dependencies [[org.clojure/clojure "1.11.4"]
                  [integrant "0.11.0"]
+                 [prismatic/schema "1.4.1"]
                  [org.jsoup/jsoup "1.18.1"]
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
