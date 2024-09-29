@@ -4,6 +4,7 @@
             [web-watchdog.networking :as networking]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.scheduling :as scheduling]
+            [web-watchdog.state :as state]
             [web-watchdog.system :as system]
             [web-watchdog.utils :as utils]
             [web-watchdog.test-utils :as test-utils])
@@ -35,19 +36,25 @@
   ;; `lein cljsbuild auto` for UI development.
 
   (reloaded-start (-> system/system-cfg
-                      (test-utils/with-fake-email-sender {:verbose true})
-                      ;(test-utils/without-cron-schedule)
+                      ;(assoc-in [:web-watchdog.state/app-state :file-path] "state-debug.edn")
+                      ;(dissoc [::system/app-state-observer :web-watchdog.persistence/state-persister])
+                      ;(dissoc :web-watchdog.scheduling/site-checker)
+                      ;(dissoc :web-watchdog.web/server)
+                      ;(test-utils/with-fake-email-sender {:verbose true})
                       ))
 
   (reloaded-stop)
 
-
-  ;; Trigger a check of all sites.
-  (let [site-checker (:web-watchdog.scheduling/site-checker repl-system)
-        app-state-atom (:web-watchdog.state/app-state repl-system)]
-    (dorun (->> @app-state-atom
-                :sites
-                (map #(scheduling/check-site-one-shot site-checker (:id %))))))
+  ;; Triggerring site checks.
+  (let [scope :site-0
+        app-state-atom (:web-watchdog.state/app-state repl-system)
+        reset-next-check-utc (fn [site] (assoc-in site [:state :next-check-utc] (utils/now-utc)))]
+    (case scope
+      :all-sites
+      (swap! app-state-atom update-in [:sites] #(mapv reset-next-check-utc %))
+      :site-0
+      (swap! app-state-atom update-in [:sites 0] reset-next-check-utc))
+    nil)
 
 
   ;; Inspect the history of fakely sent emails.
@@ -57,14 +64,15 @@
     (deref $) ; `:history` holds an atom
     (map :subject $))
 
+  ;; Simulate a content change for a site.
   (let [app-state-atom (:web-watchdog.state/app-state repl-system)]
-    (do (swap! app-state-atom assoc-in [:sites 0 :state :content-hash] "123")
-        nil))
+    (swap! app-state-atom assoc-in [:sites 0 :state :content-hash] "123")
+    nil)
 
-  ;; Backfill a property to all sites.
+  ;; Backfill a property to all sites in the `state.edn` file.
   (let [state-file "state.edn"
-        prop-path [:state :loading?]
-        merge-val-fn (constantly {:state {:loading? false}})
+        prop-path [:state :next-check-utc]
+        merge-val-fn (constantly {:state {:next-check-utc 0}})
         backfill-site (fn [site]
                         (if (some? (get-in site prop-path))
                           (do (printf "Site '%s' already has '%s' set, skipping\n" (:title site) prop-path)
@@ -111,4 +119,5 @@
    [[:css ".crossroad-products li:last-of-type .title"]
     [:html->text]])
 
-  nil)
+  nil
+  )

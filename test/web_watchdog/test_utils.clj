@@ -15,13 +15,14 @@
                        :url    (format "http://site-%s.com" label)
                        :emails (site-emails label)
                        :state  {:last-check-utc  nil
+                                :next-check-utc  nil
                                 :content-snippet nil
                                 :content-hash    nil
                                 :last-change-utc nil
                                 :fail-counter    0
                                 :last-error-utc  nil
                                 :last-error-msg  nil
-                                :loading? false}}]
+                                :ongoing-check   :idle}}]
      (merge-with merge default-site overrides))))
 
 (defn set-sites [app-state sites]
@@ -55,6 +56,3 @@
    (-> system-cfg
        (dissoc [::system/email-sender :web-watchdog.email/gmail-sender])
        (assoc  [::system/email-sender ::fake-email-sender] opts))))
-
-(defn without-cron-schedule [system-cfg]
-  (assoc-in system-cfg [:web-watchdog.scheduling/site-checker :start-cron-schedules?] false))

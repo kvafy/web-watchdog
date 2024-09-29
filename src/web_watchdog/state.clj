@@ -17,13 +17,14 @@
             :emails     ["my@email.com"]
             :schedule   "0 0 9 * * *"
             :state      {:last-check-utc nil
+                         :next-check-utc nil
                          :content-hash   nil
                          :content-snippet nil
                          :last-change-utc nil
                          :fail-counter   0
                          :last-error-utc nil
                          :last-error-msg nil
-                         :loading? false}}]
+                         :ongoing-check :idle}}]
    ;; Global configuration.
    :config {:default-schedule "0 0 9 * * *"
             :timezone "Europe/London"}})
@@ -40,13 +41,14 @@
             :emails (s/conditional (every-pred vector? not-empty) [s/Str])
             (s/optional-key :schedule) s/Str
             :state {:last-check-utc (s/maybe s/Int)
+                    :next-check-utc (s/maybe s/Int)
                     :content-hash (s/maybe s/Str)
                     :content-snippet (s/maybe s/Str)
                     :last-change-utc (s/maybe s/Int)
                     :fail-counter s/Int
                     :last-error-utc (s/maybe s/Int)
                     :last-error-msg (s/maybe s/Str)
-                    :loading? s/Bool}}]
+                    :ongoing-check (s/enum :idle :pending :in-progress)}}]
    :config
      {:default-schedule s/Str
       (s/optional-key :timezone) s/Str}})

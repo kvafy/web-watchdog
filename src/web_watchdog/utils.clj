@@ -1,23 +1,6 @@
 (ns web-watchdog.utils
   (:import [java.time Instant ZoneId]))
 
-(defn compare-and-assoc-in!
-  "Atomically sets the value of path in atom to new-val iff the current
-   value of the atom path is identical to old-val. Returns true if set
-   happened, else false."
-  [atom ks old-val new-val]
-  (let [atom-snapshot @atom]
-    (if (not= old-val (get-in atom-snapshot ks))
-      ;; The path has wrong value to begin with.
-      false
-      (let [atom-updated (assoc-in atom-snapshot ks new-val)]
-        (if (compare-and-set! atom atom-snapshot atom-updated)
-          true
-          ;; Retry. Either some independent part of the atom changed and
-          ;; the retry will succeed, or another thread executed this
-          ;; compare-and-assoc-in! successfully and the recur will fail fast.
-          (recur atom ks old-val new-val))))))
-
 (defn log [msg]
   (printf "[%s] %s\n" (java.util.Date.) msg)
   (flush))

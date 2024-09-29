@@ -58,5 +58,11 @@
       (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :schedule])))
     (testing "site > missing :state, throws"
       (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :state])))
-    (testing "site > :state > missing :loading?, throws"
-      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :state :loading?])))))
+    (testing "site > :state > missing :ongoing-check, throws"
+      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :state :ongoing-check])))
+    (testing "site > :state > valid :ongoing-check values, passes"
+      (doseq [val [:idle :pending :in-progress]]
+        (passes-for-updated-config #(assoc-in % [:sites 0 :state :ongoing-check] val))))
+    (testing "site > :state > invalid :ongoing-check values, throws"
+      (doseq [val [:some :bogus nil]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :state :ongoing-check] val))))))

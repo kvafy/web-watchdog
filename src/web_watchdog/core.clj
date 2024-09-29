@@ -74,15 +74,3 @@
       changed      (assoc-in [:state :last-change-utc] now)
       ex-nfo       (update-in [:state :fail-counter] inc)
       ex-nfo       (assoc-in [:state :last-error-utc] now))))
-
-;; To be used in concurrent environment (with a scheduler).
-
-(defn check-site-with-lock! [site-id app-state download-fn]
-  (when-let [[site-idx site-old] (find-site-by-id @app-state site-id)]
-    (utils/log (format "Checking site '%s' ..." (:title site-old)))
-    (if-not (utils/compare-and-assoc-in! app-state [:sites site-idx :state :loading?] false true)
-      (utils/log (format "Site '%s' already has an ongoing check, skipping." (:title site-old)))
-      (let [site-new (check-site site-old download-fn)]
-        (swap! app-state #(-> %
-                              (assoc-in [:sites site-idx] site-new)
-                              (assoc-in [:sites site-idx :state :loading?] false)))))))

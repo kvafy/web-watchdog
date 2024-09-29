@@ -17,21 +17,21 @@
    :web-watchdog.web/handler
    {:app-state (ig/ref :web-watchdog.state/app-state)}
 
-   ;; Abstraction for checking websites according to their configured
+   ;; Backgronud process for checking websites according to their configured
    ;; schedules, and immediately on demand.
-   ;; Value: web-watchdog.core/SiteChecker
+   ;; Value: {:interrupt-channel <core.async channel>}
    :web-watchdog.scheduling/site-checker
-   {:start-cron-schedules? true
-    ;; Deps
+   {;; Deps
     :app-state (ig/ref :web-watchdog.state/app-state),
     :download-fn (ig/ref :web-watchdog.networking/web-downloader),
-    :scheduler (ig/ref :web-watchdog.scheduling/scheduler)
+    :blocking-threadpool (ig/ref :web-watchdog.scheduling/blocking-threadpool)
     ;; Forced dependency to ensure all observers are initialized.
     :app-state-observers (ig/refset ::app-state-observer)}
 
-   ;; Scheduler for running tasks at specific times.
-   ;; Value: web-watchdog.scheduling/Scheduler
-   :web-watchdog.scheduling/scheduler
+   ;; Threadpool for running blocking tasks (e.g. network I/O) that
+   ;; cannot be run on the core.async threads.
+   ;; Value: java.util.concurrent.ExecutorService
+   :web-watchdog.scheduling/blocking-threadpool
    {:thread-count 4}
 
    ;; Notifies of state changes using the :email-sender.
