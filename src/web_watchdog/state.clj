@@ -65,10 +65,18 @@
       (throw (IllegalArgumentException.
               (format "Sites must have unique IDs, but the following are duplicate: %s" dupe-ids))))))
 
+(defn sanitize-initial-state
+  "Because state gets persisted on every change, it may be in an intermediate unexpected state.
+   For example, the program was killed while performing a site check."
+  [state]
+  (let [set-ongoing-check-to-idle (fn [site] (assoc-in site [:state :ongoing-check] :idle))]
+    (-> state
+        (update-in [:sites] #(mapv set-ongoing-check-to-idle %)))))
+
 
 ;; The global application state component.
 
-(defmethod ig/init-key ::app-state [_ {:keys [file-path validate?]}]
+(defmethod ig/init-key ::app-state [_ {:keys [file-path validate? sanitize?]}]
   (let [state
         (if-let [loaded-state (persistence/load-state file-path)]
           (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
@@ -76,6 +84,13 @@
           (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
               default-state))]
     (when validate?
-      (utils/log "Validating the app state.")
+      (utils/log "Validating the initial app state.")
       (validate state))
-    (atom state)))
+    (atom
+     (if sanitize?
+       (do (utils/log "Sanitizing the initial app state.")
+           (let [sanitized-state (sanitize-initial-state state)]
+             (when (not= state sanitized-state)
+               (utils/log "State sanitization did fix some issues."))
+             sanitized-state))
+       state))))

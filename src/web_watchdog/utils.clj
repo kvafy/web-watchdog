@@ -1,4 +1,5 @@
 (ns web-watchdog.utils
+  (:require [clojure.core.async :as async :refer [<!, >!]])
   (:import [java.time Instant ZoneId]))
 
 (defn log [msg]
@@ -22,6 +23,29 @@
        (.toString
          (new java.math.BigInteger 1 (.digest hash-bytes)) ; Positive and the size of the number
          16))) ; Use base16 i.e. hex
+
+(defn debounce
+  "Returns a new function that accepts the same parameters as `f` but is
+   debounced. The function doesn't return anything and is executed only for
+   side-effects.
+   From a burst of invocations within the given interval, the last one wins."
+  [f interval-ms]
+  (let [proceed-ch-atom (atom (async/chan))
+        restart-ch (async/chan)]
+    ;; Where `f` actually gets eventually executed...
+    (async/go-loop []
+      (let [[args ch] (async/alts! [restart-ch @proceed-ch-atom] :priority true)]
+        (when (= ch @proceed-ch-atom)
+          (apply f args)))
+      (recur))
+    ;; Debounced decorator of `f`.
+    (fn [& args]
+      (let [new-proceed-ch (async/chan)]
+        (reset! proceed-ch-atom new-proceed-ch)
+        (async/go (>! restart-ch :restart)
+                  (<! (async/timeout interval-ms))
+                  (>! new-proceed-ch args))
+        nil))))
 
 (defn memoize-with-ttl [f ttl-ms]
   (let [cache (atom {})] ;; Format: {<f-args> {:result <f-return>, :timestamp <epoch-millis>}}

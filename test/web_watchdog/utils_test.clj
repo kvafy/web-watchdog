@@ -1,6 +1,32 @@
 (ns web-watchdog.utils-test
   (:require [clojure.test :refer [deftest is testing]]
-            [web-watchdog.utils :refer [memoize-with-ttl]]))
+            [web-watchdog.utils :refer [debounce memoize-with-ttl]]))
+
+(deftest debounce-test
+  (let [calls (atom [])
+        f (fn [x] (swap! calls conj x))
+        interval 20]
+    (testing "single invocation, eventually executed"
+      (let [f-debounced (debounce f interval)]
+        (reset! calls [])
+        (f-debounced 1)
+        (Thread/sleep (* 2 interval))
+        (is (= [1] @calls))))
+    (testing "short burst, last invocation wins"
+      (let [f-debounced (debounce f interval)]
+        (reset! calls [])
+        (dotimes [n 10]
+          (f-debounced n))
+        (Thread/sleep (* 2 interval))
+        (is (= [9] @calls))))
+    (testing "two unrelated invocations, both executed"
+      (let [f-debounced (debounce f interval)]
+        (reset! calls [])
+        (f-debounced 1)
+        (Thread/sleep (* 2 interval))
+        (f-debounced 2)
+        (Thread/sleep (* 2 interval))
+        (is (= [1 2] @calls))))))
 
 (deftest memoize-with-ttl-test
   (let [counter (atom 0)
