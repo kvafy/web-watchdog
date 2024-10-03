@@ -4,29 +4,53 @@
 
 (deftest debounce-test
   (let [calls (atom [])
-        f (fn [x] (swap! calls conj x))
+        f (fn [x]
+            (swap! calls conj x)
+            (if (<= 0 x)
+              x
+              (throw (IllegalArgumentException. "mock throw"))))
         interval 20]
-    (testing "single invocation, eventually executed"
-      (let [f-debounced (debounce f interval)]
-        (reset! calls [])
-        (f-debounced 1)
+    (testing "single successful invocation, eventually executed and value returned"
+      (reset! calls [])
+      (let [f-debounced (debounce f interval)
+            result (f-debounced 1)]
+        (is (false? (realized? result)))
         (Thread/sleep (* 2 interval))
+        (is (true? (realized? result)))
+        (is (= 1 @result))
         (is (= [1] @calls))))
-    (testing "short burst, last invocation wins"
-      (let [f-debounced (debounce f interval)]
-        (reset! calls [])
-        (dotimes [n 10]
-          (f-debounced n))
+    (testing "single throwing invocation, eventually executed and exception returned"
+      (reset! calls [])
+      (let [f-debounced (debounce f interval)
+            result (f-debounced -1)]
+        (is (false? (realized? result)))
         (Thread/sleep (* 2 interval))
+        (is (true? (realized? result)))
+        (is (true? (contains? @result :exception)))
+        (is (= [-1] @calls))))
+    (testing "short burst, last invocation wins"
+      (reset! calls [])
+      (let [f-debounced (debounce f interval)
+            results (for [n (range 10)] (f-debounced n))]
+        (doall results)
+        (is (= 1 (-> results set count)))  ;; Identical promise returned for the whole burst.
+        (is (true? (not-any? realized? results)))
+        (Thread/sleep (* 2 interval))
+        (is (true? (every? realized? results)))
+        (is (= #{9} (->> results (mapv deref) set)))
         (is (= [9] @calls))))
     (testing "two unrelated invocations, both executed"
+      (reset! calls [])
       (let [f-debounced (debounce f interval)]
-        (reset! calls [])
-        (f-debounced 1)
-        (Thread/sleep (* 2 interval))
-        (f-debounced 2)
-        (Thread/sleep (* 2 interval))
-        (is (= [1 2] @calls))))))
+        (let [result-1 (f-debounced 1)
+              _ (Thread/sleep (* 2 interval))
+              result-2 (f-debounced 2)
+              _ (Thread/sleep (* 2 interval))]
+          (is (not= result-1 result-2))  ;; Two different bursts, two different promises.
+          (is (true? (every? realized? [result-1 result-2])))
+          (is (= 1 @result-1))
+          (is (= 2 @result-2))
+          (is (= [1 2] @calls)))))))
 
 (deftest memoize-with-ttl-test
   (let [counter (atom 0)

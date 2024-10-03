@@ -26,17 +26,21 @@
 
 (defn debounce
   "Returns a new function that accepts the same parameters as `f` but is
-   debounced. The function doesn't return anything and is executed only for
-   side-effects.
+   debounced. The decorated function returns a promise that will eventually be
+   realized with the value of the `f` execution, or with `{:exception ex}`.
    From a burst of invocations within the given interval, the last one wins."
   [f interval-ms]
   (let [proceed-ch-atom (atom (async/chan))
-        restart-ch (async/chan)]
+        restart-ch (async/chan)
+        pending-result-atom (atom (promise))]
     ;; Where `f` actually gets eventually executed...
     (async/go-loop []
       (let [[args ch] (async/alts! [restart-ch @proceed-ch-atom] :priority true)]
         (when (= ch @proceed-ch-atom)
-          (apply f args)))
+          (try
+            (deliver @pending-result-atom (apply f args))
+            (catch Exception e (deliver @pending-result-atom {:exception e}))
+            (finally (reset! pending-result-atom (promise))))))
       (recur))
     ;; Debounced decorator of `f`.
     (fn [& args]
@@ -45,7 +49,7 @@
         (async/go (>! restart-ch :restart)
                   (<! (async/timeout interval-ms))
                   (>! new-proceed-ch args))
-        nil))))
+        @pending-result-atom))))
 
 (defn memoize-with-ttl [f ttl-ms]
   (let [cache (atom {})] ;; Format: {<f-args> {:result <f-return>, :timestamp <epoch-millis>}}
