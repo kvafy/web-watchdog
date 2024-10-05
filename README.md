@@ -25,7 +25,7 @@ Used technologies:
 
 ## Prerequisites
 
-* Java Runtime Environment
+* JRE 21+
 * Leiningen (build tool for Clojure)
 * *sendmail* executable on the PATH and configured
   ([gmail configuration](https://www.tutorialspoint.com/configure-sendmail-with-gmail-on-ubuntu))
