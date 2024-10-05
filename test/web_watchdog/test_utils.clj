@@ -54,6 +54,7 @@
 ;; ===============================================
 
 (defmacro with-system
+  {:clj-kondo/ignore [:unresolved-symbol]}  ;; Resolves positives on the `bound-var`.
   [[bound-var binding-cfg-expr & {keys-to-start# :only-keys}] & body]
   `(let [keys-to-start# (if (some? ~keys-to-start#) ~keys-to-start# (keys ~binding-cfg-expr))
          ~bound-var (ig/init ~binding-cfg-expr keys-to-start#)]
