@@ -7,6 +7,7 @@
    ;; Parents: :web-watchdog.system/app-state
    :web-watchdog.state/file-based-app-state ;; ~ ::app-state
    {:file-path "state.edn",
+    :fail-if-not-found? false,
     :validate? true,
     :sanitize? true,
     :save-on-change? true}

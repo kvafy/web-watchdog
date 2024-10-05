@@ -78,12 +78,17 @@
 
 (derive ::file-based-app-state :web-watchdog.system/app-state)
 
-(defmethod ig/init-key ::file-based-app-state [_ {:keys [file-path validate? sanitize? save-on-change?]}]
-  (let [state (if-let [loaded-state (persistence/load-state file-path)]
-                (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
-                    loaded-state)
-                (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
-                    default-state))
+(defmethod ig/init-key ::file-based-app-state [_ {:keys [file-path fail-if-not-found? validate? sanitize? save-on-change?]}]
+  (let [state (let [loaded-state (persistence/load-state file-path)]
+                (cond
+                  (some? loaded-state)
+                  (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
+                      loaded-state)
+                  fail-if-not-found?
+                  (throw (IllegalStateException. (format "State file '%s' not found." file-path)))
+                  :else
+                  (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
+                      default-state)))
         _  (when validate?
              (utils/log "Validating the initial app state.")
              (validate state))
