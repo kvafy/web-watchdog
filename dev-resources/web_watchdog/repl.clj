@@ -36,8 +36,8 @@
   ;; `lein cljsbuild auto` for UI development.
 
   (reloaded-start (-> system/system-cfg
-                      ;(assoc-in [:web-watchdog.state/app-state :file-path] "state-debug.edn")
-                      ;(dissoc [::system/app-state-observer :web-watchdog.persistence/state-persister])
+                      ;(assoc-in [:web-watchdog.state/file-based-app-state :file-path] "state-debug.edn")
+                      ;(assoc-in [:web-watchdog.state/file-based-app-state :save-on-change?] false)
                       ;(dissoc :web-watchdog.scheduling/site-checker)
                       ;(dissoc :web-watchdog.web/server)
                       ;(test-utils/with-fake-email-sender {:verbose true})
@@ -47,7 +47,7 @@
 
   ;; Triggerring site checks.
   (let [scope :site-0
-        app-state-atom (:web-watchdog.state/app-state repl-system)
+        app-state-atom (:web-watchdog.state/file-based-app-state repl-system)
         reset-next-check-utc (fn [site] (assoc-in site [:state :next-check-utc] (utils/now-utc)))]
     (case scope
       :all-sites
@@ -59,13 +59,12 @@
 
   ;; Inspect the history of fakely sent emails.
   (as-> repl-system $
-    (get $ [::system/email-sender ::test-utils/fake-email-sender])
-    (get $ :history)
+    (get-in $ [:web-watchdog.test-utils/fake-email-sender :history])
     (deref $) ; `:history` holds an atom
     (map :subject $))
 
   ;; Simulate a content change for a site.
-  (let [app-state-atom (:web-watchdog.state/app-state repl-system)]
+  (let [app-state-atom (:web-watchdog.state/file-based-app-state repl-system)]
     (swap! app-state-atom assoc-in [:sites 0 :state :content-hash] "123")
     nil)
 

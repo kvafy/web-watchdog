@@ -59,8 +59,13 @@
       :body [{:type "text/html; charset=utf-8"
               :content body-html}]})))
 
+(derive ::gmail-sender :web-watchdog.system/email-sender)
+
 (defmethod ig/init-key ::gmail-sender [_ _]
   {:impl (->GmailEmailSender)})
+
+(defmethod ig/resolve-key ::gmail-sender [_ {:keys [impl]}]
+  impl)
 
 
 ;; Notifying about app state changes and notifying  through email.
@@ -84,12 +89,14 @@
 
 ;; The email notifier component.
 
+(derive ::notifier :web-watchdog.system/app-state-observer)
+
 (defmethod ig/init-key ::notifier [_ {:keys [app-state email-sender]}]
   (add-watch app-state
              ::email-notifier
              (fn [_ _ old-state new-state]
                (when (not= old-state new-state)
-                 (notify-about-site-changes! (:impl email-sender) old-state new-state))))
+                 (notify-about-site-changes! email-sender old-state new-state))))
   {:watched-atom app-state})
 
 (defmethod ig/halt-key! ::notifier [_ {:keys [watched-atom]}]

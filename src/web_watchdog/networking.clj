@@ -25,5 +25,9 @@
           [nil ex-nfo])))))
 
 
+;; The downloader function component.
+
+(derive ::web-downloader :web-watchdog.system/download-fn)
+
 (defmethod ig/init-key ::web-downloader [_ {:keys [cache-ttl-ms]}]
   (utils/memoize-with-ttl #'download cache-ttl-ms))

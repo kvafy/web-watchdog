@@ -40,6 +40,8 @@
 
 ;; Helpers to manipulate the integrant system.
 
+(derive ::fake-email-sender :web-watchdog.system/email-sender)
+
 (defmethod ig/init-key ::fake-email-sender [_ {:keys [verbose]}]
   (let [history (atom [])
         impl (reify web-watchdog.email/EmailSender
@@ -49,10 +51,13 @@
                  (swap! history conj {:to to, :subject subject, :body-html body-html})))]
     {:impl impl, :history history}))
 
+(defmethod ig/resolve-key ::fake-email-sender [_ {:keys [impl]}]
+  impl)
+
 (defn with-fake-email-sender
   ([system-cfg]
    (with-fake-email-sender system-cfg {:verbose false}))
   ([system-cfg opts]
    (-> system-cfg
-       (dissoc [::system/email-sender :web-watchdog.email/gmail-sender])
-       (assoc  [::system/email-sender ::fake-email-sender] opts))))
+       (dissoc :web-watchdog.email/gmail-sender)
+       (assoc  ::fake-email-sender opts))))

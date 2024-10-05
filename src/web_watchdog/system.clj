@@ -2,57 +2,59 @@
   (:require [integrant.core :as ig]))
 
 (def system-cfg
-  {;; State of the watched websites (check results, schedule etc.).
+  {;; Description: State of the watched websites (check results, schedule etc.).
    ;; Value: Atom<Map>
-   :web-watchdog.state/app-state
-   {:file-path "state.edn", :validate? true, :sanitize? true}
+   ;; Parents: :web-watchdog.system/app-state
+   :web-watchdog.state/file-based-app-state ;; ~ ::app-state
+   {:file-path "state.edn",
+    :validate? true,
+    :sanitize? true,
+    :save-on-change? true}
 
    ;; Web server for the UI.
    ;; Value: org.eclipse.jetty.server.Server
    :web-watchdog.web/server
    {:port 8080, :handler (ig/ref :web-watchdog.web/handler)}
 
-   ;; Web server Ring handler.
+   ;; Description: Web server Ring handler.
    ;; Value: Ring handler.
    :web-watchdog.web/handler
-   {:app-state (ig/ref :web-watchdog.state/app-state)}
+   {:app-state (ig/ref ::app-state)}
 
-   ;; Backgronud process for checking websites according to their configured
-   ;; schedules, and immediately on demand.
+   ;; Description: Backgronud process for checking websites according to their
+   ;;              configured schedules, and immediately on demand.
    ;; Value: {:interrupt-channel <core.async channel>}
    :web-watchdog.scheduling/site-checker
    {;; Deps
-    :app-state (ig/ref :web-watchdog.state/app-state),
-    :download-fn (ig/ref :web-watchdog.networking/web-downloader),
+    :app-state (ig/ref ::app-state),
+    :download-fn (ig/ref ::download-fn),
     :blocking-threadpool (ig/ref :web-watchdog.scheduling/blocking-threadpool)
-    ;; Forced dependency to ensure all observers are initialized.
-    :app-state-observers (ig/refset ::app-state-observer)}
+    ;; Forced dependencies to ensure the right starting order.
+    :state-observers-initialized (ig/refset ::app-state-observer)}
 
-   ;; Threadpool for running blocking tasks (e.g. network I/O) that
-   ;; cannot be run on the core.async threads.
+   ;; Description: Threadpool for running blocking tasks (e.g. network I/O)
+   ;;              that cannot be run on the core.async threads.
    ;; Value: java.util.concurrent.ExecutorService
    :web-watchdog.scheduling/blocking-threadpool
    {:thread-count 4}
 
-   ;; Notifies of state changes using the :email-sender.
+   ;; Description: Notifies of state changes using the :email-sender.
    ;; Value: {:watched-atom <app-state-atom>}
-   [::app-state-observer :web-watchdog.email/notifier]
-   {:app-state (ig/ref :web-watchdog.state/app-state),
+   ;; Parents: :web-watchdog.system/app-state-observer
+   :web-watchdog.email/notifier ;; ~ ::app-state-observer
+   {:app-state (ig/ref ::app-state),
     :email-sender (ig/ref ::email-sender)}
 
-   ;; Stores app state to a file when the state changes.
-   ;; Value: {:watched-atom <app-state-atom>}
-   ; TODO: Would be nice to share the file path between `::state-persister` and `::app-state`.
-   [::app-state-observer :web-watchdog.persistence/state-persister]
-   {:file-path "state.edn", :app-state (ig/ref :web-watchdog.state/app-state)}
-
-   ;; Gmail email sender.
-   ;; Value: {:impl <of web-watchdog.email/EmailSender>}.
-   [::email-sender :web-watchdog.email/gmail-sender]
+   ;; Description: Gmail email sender.
+   ;; Resolved value: web-watchdog.email/EmailSender
+   ;; Value: {:impl <of web-watchdog.email/EmailSender>}
+   ;; Parents: :web-watchdog.system/email-sender
+   :web-watchdog.email/gmail-sender ;; ~ ::email-sender
    {}
 
-   ;; Downloader of websites (as a component for mocking).
+   ;; Description: Downloader of websites (as a component for mocking).
    ;; Value: (fn [url] -> [[ok-body err]])
-   :web-watchdog.networking/web-downloader
+   ;; Parents: :web-watchdog.system/download-fn
+   :web-watchdog.networking/web-downloader ;; ~::download-fn
    {:cache-ttl-ms (* 10 1000)}
- })
+   })

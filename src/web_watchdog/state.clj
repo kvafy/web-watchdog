@@ -74,23 +74,36 @@
         (update-in [:sites] #(mapv set-ongoing-check-to-idle %)))))
 
 
-;; The global application state component.
+;; The global application state component, sourced from a file.
 
-(defmethod ig/init-key ::app-state [_ {:keys [file-path validate? sanitize?]}]
-  (let [state
-        (if-let [loaded-state (persistence/load-state file-path)]
-          (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
-              loaded-state)
-          (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
-              default-state))]
-    (when validate?
-      (utils/log "Validating the initial app state.")
-      (validate state))
-    (atom
-     (if sanitize?
-       (do (utils/log "Sanitizing the initial app state.")
-           (let [sanitized-state (sanitize-initial-state state)]
-             (when (not= state sanitized-state)
-               (utils/log "State sanitization did fix some issues."))
-             sanitized-state))
-       state))))
+(derive ::file-based-app-state :web-watchdog.system/app-state)
+
+(defmethod ig/init-key ::file-based-app-state [_ {:keys [file-path validate? sanitize? save-on-change?]}]
+  (let [state (if-let [loaded-state (persistence/load-state file-path)]
+                (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
+                    loaded-state)
+                (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
+                    default-state))
+        _  (when validate?
+             (utils/log "Validating the initial app state.")
+             (validate state))
+        state-sanitized (if sanitize?
+                          (do (utils/log "Sanitizing the initial app state.")
+                              (let [sanitized-state (sanitize-initial-state state)]
+                                (when (not= state sanitized-state)
+                                  (utils/log "State sanitization did fix some issues."))
+                                sanitized-state))
+                          state)
+        state-atom (atom state-sanitized)]
+    (when save-on-change?
+      (utils/log (format "State changes will be saved to the config file '%s'." file-path))
+      (let [save-state!-debounced (utils/debounce persistence/save-state! 1000)]
+        (add-watch state-atom
+                   ::file-based-app-state--state-persister
+                   (fn [_ _ old-state new-state]
+                     (when (not= old-state new-state)
+                       (save-state!-debounced new-state file-path))))))
+    state-atom))
+
+(defmethod ig/halt-key! ::file-based-app-state [_ state-atom]
+  (remove-watch state-atom ::file-based-app-state--state-persister))
