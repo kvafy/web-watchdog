@@ -1,6 +1,7 @@
 (ns web-watchdog.utils
-  (:require [goog.string :as gstring]
-            goog.string.format))
+  (:require [clojure.string]
+            [goog.string :as gstring]
+            [goog.string.format]))
 
 (defn today? [date]
   (let [now  (js/Date.)]
