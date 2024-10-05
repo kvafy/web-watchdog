@@ -102,7 +102,7 @@
         state-atom (atom state-sanitized)]
     (when save-on-change?
       (utils/log (format "State changes will be saved to the config file '%s'." file-path))
-      (let [save-state!-debounced (utils/debounce persistence/save-state! 1000)]
+      (let [save-state!-debounced (utils/debounce #'persistence/save-state! 1000)]
         (add-watch state-atom
                    ::file-based-app-state--state-persister
                    (fn [_ _ old-state new-state]
