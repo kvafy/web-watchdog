@@ -5,7 +5,8 @@
             [web-watchdog.state :refer [default-state] :as state]
             [web-watchdog.system :as system]
             [web-watchdog.test-utils :refer [build-site not-thrown? set-sites with-system] :as test-utils]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.utils :as utils])
+  (:import [java.net ServerSocket]))
 
 (def download-delay-ms 500)  ;; For actual network I/O with a real-world server.
 (def settling-delay-ms 50)   ;; To allow for async processes to finish.
@@ -42,6 +43,10 @@
       (assoc-in [:state :last-check-utc] 0)
       (assoc-in [:state :next-check-utc] 1)))
 
+(defn find-free-port []
+  (with-open [socket (ServerSocket. 0)]
+    (.getLocalPort socket)))
+
 
 ;; Actual tests.
 
@@ -62,8 +67,8 @@
                             (assoc-in [:web-watchdog.state/file-based-app-state :fail-if-not-found?] true)
                             (assoc-in [:web-watchdog.state/file-based-app-state :save-on-change?] false)
                             (assoc-in [:web-watchdog.state/file-based-app-state :validate?] true)
-                            ;; TODO: Dynamically pick a port that is not used.
-                            (assoc-in [:web-watchdog.web/server :port] 9091)
+                            ;; Dynamically pick a port that is not used.
+                            (assoc-in [:web-watchdog.web/server :port] (find-free-port))
                             test-utils/with-fake-email-sender)]
     (testing "full system checking google.com"
       (with-system [sut test-system-cfg]
