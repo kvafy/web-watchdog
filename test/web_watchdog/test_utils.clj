@@ -1,8 +1,19 @@
 (ns web-watchdog.test-utils
   (:require [integrant.core :as ig]
             [web-watchdog.email]
-            [web-watchdog.system :as system]
+            [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
+
+;; Generic helpers.
+
+(defmacro not-thrown? [& body]
+  `(try
+     ~@body
+     true
+     (catch Exception _# false)))
+
+
+;; Constructing sites and app state.
 
 (defn site-emails [label]
   [(format "%s@watcher.com" label)])
@@ -38,7 +49,67 @@
   (constantly [nil ex-data]))
 
 
-;; Helpers to manipulate the integrant system.
+;; ===============================================
+;; Fake Integrant components for integration tests
+;; ===============================================
+
+(defmacro with-system
+  [[bound-var binding-cfg-expr & {keys-to-start# :only-keys}] & body]
+  `(let [keys-to-start# (if (some? ~keys-to-start#) ~keys-to-start# (keys ~binding-cfg-expr))
+         ~bound-var (ig/init ~binding-cfg-expr keys-to-start#)]
+     (try
+       ~@body
+       (finally (ig/halt! ~bound-var)))))
+
+(defn assert-system-modified
+  "Used to validate that a system modification was successful.
+   Helps to catch typos in keywords when removing a component from the system."
+  [new-system-cfg orig-system-cfg]
+  (when (= new-system-cfg orig-system-cfg)
+    (throw (IllegalStateException. "The system state was expected to change, but it didn't.")))
+  new-system-cfg)
+
+;; In-memory app state component.
+
+(derive ::in-memory-app-state :web-watchdog.system/app-state)
+
+(defmethod ig/init-key ::in-memory-app-state [_ {:keys [state validate?]}]
+  (when validate?
+    (state/validate state))
+  (atom state))
+
+(defn with-in-memory-app-state [system-cfg state]
+  (-> system-cfg
+      (dissoc :web-watchdog.state/file-based-app-state)
+      (assert-system-modified system-cfg)
+      (assoc  ::in-memory-app-state {:state state, :validate? true})))
+
+;; Mockable download-fn.
+
+(derive ::fake-download-fn :web-watchdog.system/download-fn)
+
+(defmethod ig/init-key ::fake-download-fn [_ _]
+  (let [mock-result (atom {:success "downloaded content"})
+        arg-history (atom [])
+        f (fn [url]
+            (swap! arg-history conj url)
+            (let [{:keys [success failure]} @mock-result]
+              (cond
+                (some? success) [success nil]
+                (some? failure) [nil failure]
+                :else (throw (IllegalStateException. (str "Invalid config of the ::fake-download-fn: " @mock-result))))))]
+    {:impl f, :arg-history arg-history, :mock-result mock-result}))
+
+(defmethod ig/resolve-key ::fake-download-fn [_ {:keys [impl]}]
+  impl)
+
+(defn with-fake-downloader [system-cfg]
+  (-> system-cfg
+      (dissoc :web-watchdog.networking/web-downloader)
+      (assert-system-modified system-cfg)
+      (assoc  ::fake-download-fn {})))
+
+;; Fake email sender.
 
 (derive ::fake-email-sender :web-watchdog.system/email-sender)
 
@@ -60,4 +131,5 @@
   ([system-cfg opts]
    (-> system-cfg
        (dissoc :web-watchdog.email/gmail-sender)
+       (assert-system-modified system-cfg)
        (assoc  ::fake-email-sender opts))))

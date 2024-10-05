@@ -1,0 +1,16 @@
+{:sites
+ [{:id "71ce8b4e-97d3-45f0-aa10-7b1434f25c83",
+   :title "google homepage",
+   :url "https://www.google.com",
+   :emails ["test@email.com"],
+   :state
+   {:content-hash "initial content hash",
+    :last-check-utc 0,
+    :last-error-msg nil,
+    :next-check-utc 1,
+    :last-error-utc nil,
+    :content-snippet "doodle of the day",
+    :ongoing-check :idle,
+    :fail-counter 0,
+    :last-change-utc 0}}],
+ :config {:default-schedule "0 0 9 * * *", :timezone "Europe/London"}}

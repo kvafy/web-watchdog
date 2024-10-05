@@ -59,9 +59,14 @@
       (and fails (zero? fails) (pos? fails'))  :site-failing
       :else nil)))
 
-(defn check-site [site download-fn]
-  (let [now (utils/now-utc)
-        [data ex-nfo]  (-> site :url download-fn)
+(defn update-site-with-download-result
+  "Updates the given site with download result.
+   `download-result` is a 2-tuple of `[success failure]` where exactly one
+   component is non-nil, `success` is a string of the raw site content,
+   and `failure` is an `ex-info` object."
+  [site download-result]
+  (let [[data ex-nfo] download-result
+        now (utils/now-utc)
         content (some-> data (extract-content (get site :content-extractors [])))
         hash (some-> content utils/md5)
         changed (and content (not= hash (-> site :state :content-hash)))]
@@ -74,3 +79,7 @@
       changed      (assoc-in [:state :last-change-utc] now)
       ex-nfo       (update-in [:state :fail-counter] inc)
       ex-nfo       (assoc-in [:state :last-error-utc] now))))
+
+(defn check-site [site download-fn]
+  (let [[data ex-nfo]  (-> site :url download-fn)]
+    (update-site-with-download-result site [data ex-nfo])))
