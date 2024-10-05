@@ -31,3 +31,17 @@ body {
 .popover {
   max-width: 80% !important; /* Relative to the table of checked sites. */
 }
+
+.spinning {
+  display: inline-block; /* Required for the animation to work. */
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

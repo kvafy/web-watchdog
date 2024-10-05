@@ -40,9 +40,16 @@
       [:div.tooltip-value [:span.monospace content-snippet]]])])
 
 (defn site [s]
-  (let [fails        (-> s :state :fail-counter)
-        content-hash (-> s :state :content-hash)
-        status (cond (< 0 fails)  {:color-css "text-danger" ; Bootstrap class
+  (let [fails         (-> s :state :fail-counter)
+        content-hash  (-> s :state :content-hash)
+        ongoing-check (-> s :state :ongoing-check)
+        status (cond (= ongoing-check "pending") {:color-css ""
+                                                  :icon-css  "bi bi-hourglass spinning"
+                                                  :text      "Check pending"}
+                     (= ongoing-check "in-progress") {:color-css ""
+                                                      :icon-css  "bi bi-arrow-repeat spinning"
+                                                      :text      "Check in progress"}
+                     (< 0 fails)  {:color-css "text-danger" ; Bootstrap class
                                    :icon-css  "bi bi-exclamation-circle" ; Bootstrap class
                                    :text      (str "Last check failed with " (-> s :state :last-error-msg))}
                      content-hash {:color-css "text-success"
