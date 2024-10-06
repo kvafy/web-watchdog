@@ -12,6 +12,17 @@
      true
      (catch Exception _# false)))
 
+(defmacro with-temp-file-copy
+  {:clj-kondo/ignore [:unresolved-symbol]}  ;; Resolves positives on the `bound-var`.
+  [[tmp-path-binding-var orig-path] & body]
+  `(let [tmp-file# (java.io.File/createTempFile "web-watchdog-test-state" ".edn")
+         ~tmp-path-binding-var (.getAbsolutePath tmp-file#)]
+     (try
+       (do
+         (->> ~orig-path slurp (spit ~tmp-path-binding-var))
+         ~@body)
+       (finally (.delete tmp-file#)))))
+
 
 ;; Constructing sites and app state.
 

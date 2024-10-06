@@ -10,7 +10,8 @@
     :fail-if-not-found? false,
     :validate? true,
     :sanitize? true,
-    :save-on-change? true}
+    :save-on-change? true,
+    :save-debounce-ms 1000}
 
    ;; Web server for the UI.
    ;; Value: org.eclipse.jetty.server.Server

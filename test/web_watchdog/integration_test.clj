@@ -62,26 +62,34 @@
 
 
 (deftest e2e-smoke-test
-  ;; Bring up the full system whose config is as close as possible to typical
-  ;; production run, mocking/reconfiguring only the bare minimum.
-  (let [test-system-cfg (-> system/system-cfg
-                            ;; Read app state from a test file, and don't modify the file.
-                            (assoc-in [:web-watchdog.state/file-based-app-state :file-path] "test/resources/test-google.edn")
-                            (assoc-in [:web-watchdog.state/file-based-app-state :fail-if-not-found?] true)
-                            (assoc-in [:web-watchdog.state/file-based-app-state :save-on-change?] false)
-                            (assoc-in [:web-watchdog.state/file-based-app-state :validate?] true)
-                            ;; Dynamically pick a port that is not used.
-                            (assoc-in [:web-watchdog.web/server :port] (find-free-port))
-                            test-utils/with-fake-email-sender)]
-    (testing "full system checking google.com"
-      (with-system [sut test-system-cfg]
-        (let [app-state-atom (-> sut :web-watchdog.state/file-based-app-state)
-              email-history-atom (-> sut ::test-utils/fake-email-sender :history)]
-          (Thread/sleep (+ download-delay-ms settling-delay-ms))
-          (let [updated-site (-> @app-state-atom (get-in [:sites 0]))]
-            (assert-site-updated-with-success updated-site)
-            (assert-emails-sent-for-sites @email-history-atom [updated-site])
-            (assert-app-state-conforms-to-schema @app-state-atom)))))))
+  (test-utils/with-temp-file-copy [tmp-state-file "test/resources/test-google.edn"]
+    ;; Bring up the full system whose config is as close as possible to typical
+    ;; production run, mocking/reconfiguring only the bare minimum.
+    (let [test-system-cfg (-> system/system-cfg
+                              ;; Read app state from a test file, and don't modify the file.
+                              (assoc-in [:web-watchdog.state/file-based-app-state :file-path] tmp-state-file)
+                              (assoc-in [:web-watchdog.state/file-based-app-state :fail-if-not-found?] true)
+                              (assoc-in [:web-watchdog.state/file-based-app-state :save-debounce-ms] 0)
+                              ;; Dynamically pick a port that is not used.
+                              (assoc-in [:web-watchdog.web/server :port] (find-free-port))
+                              test-utils/with-fake-email-sender)]
+      (testing "full system checking google.com"
+        (with-system [sut test-system-cfg]
+          (let [app-state-atom (-> sut :web-watchdog.state/file-based-app-state)
+                email-history-atom (-> sut ::test-utils/fake-email-sender :history)]
+            (Thread/sleep (+ download-delay-ms settling-delay-ms))
+            (let [updated-site (-> @app-state-atom (get-in [:sites 0]))]
+              (testing "site state updated with successful download"
+                (assert-site-updated-with-success updated-site))
+              (testing "email notification sent"
+                (assert-emails-sent-for-sites @email-history-atom [updated-site]))
+              (testing "updated state is valid"
+                (assert-app-state-conforms-to-schema @app-state-atom)))
+            (testing "state file updated"
+              (let [orig-state (persistence/load-state "test/resources/test-google.edn")
+                    new-state  (persistence/load-state tmp-state-file)]
+                (is (not= orig-state new-state))
+                (is (= new-state @app-state-atom))))))))))
 
 
 (deftest content-change-integration-test
