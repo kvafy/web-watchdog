@@ -64,7 +64,7 @@
 
 (defn site-idle?-pred [site]
   (let [state (get-in site [:state :ongoing-check])]
-    (= state :idle)))
+    (= state "idle")))
 
 (defn site-next-check-due?-pred [now]
   (fn [site]
@@ -136,20 +136,20 @@
                                            (swap! app-state assoc-in (concat [:sites site-idx :state] [prop]) val))]
                 ;; Mark the site as pending a check. This also prevents it from being picked up
                 ;; by `due-idle-sites` in the next iteration of this "go" process.
-                (set-site-state-prop! :ongoing-check :pending)
+                (set-site-state-prop! :ongoing-check "pending")
                 (async/go
                   ;; Handle the check itself on a blocking threadpool (slow I/O).
                   (<! (run-async-on-threadpool
                        blocking-threadpool
                        (fn []
                          (utils/log (format "Checking site '%s' ..." (:title site-to-check)))
-                         (set-site-state-prop! :ongoing-check :in-progress)
+                         (set-site-state-prop! :ongoing-check "in-progress")
                          (swap! app-state update-in [:sites site-idx] #(core/check-site % download-fn))
                          (let [updated-site (get-in @app-state [:sites site-idx])
                                next-check-utc (next-check-time updated-site (:config @app-state))]
                            (set-site-state-prop! :next-check-utc next-check-utc)))))
                   ;; Finish by marking the site check as completed.
-                  (set-site-state-prop! :ongoing-check :idle))))
+                  (set-site-state-prop! :ongoing-check "idle"))))
             (recur)))))
     ;; Observer of the app state that will wake up the go process above if some site should now be checked sooner
     ;; than originally planned. This also covers the edge cases when the set of sites is originally empty and

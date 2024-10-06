@@ -1,5 +1,6 @@
 (ns web-watchdog.web-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [cheshire.core :as cheshire]
+            [clojure.test :refer [deftest is testing]]
             [ring.mock.request :as mock]
             [web-watchdog.state :as state]
             [web-watchdog.test-utils :refer [build-site set-sites]]
@@ -18,9 +19,8 @@
     (testing "current state"
       (let [response (app (mock/request :get "/rest/current-state"))]
         (is (= 200 (:status response)))
-        ;; TODO: Verify the `(:body response)`
-        ))
-    (testing "trigger site check"
+        (is (= @app-state (cheshire/parse-string (:body response) true)))))
+    (testing "trigger a site refresh"
       (testing "of existing site"
         (let [response (app (mock/request :post (str "/sites/" (:id site) "/refresh")))]
           (is (= 200 (:status response)))))

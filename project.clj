@@ -34,6 +34,7 @@
                      [cljsjs/react-dom "18.2.0-1"] ;; required by reagent
                      ]}
      :dev
-      {:dependencies [[ring/ring-mock "0.4.0"]]}
+      {:dependencies [[cheshire "5.13.0"]
+                      [ring/ring-mock "0.4.0"]]}
      :uberjar
      {:aot :all}})

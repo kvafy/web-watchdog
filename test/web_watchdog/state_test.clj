@@ -61,8 +61,8 @@
     (testing "site > :state > missing :ongoing-check, throws"
       (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :state :ongoing-check])))
     (testing "site > :state > valid :ongoing-check values, passes"
-      (doseq [val [:idle :pending :in-progress]]
+      (doseq [val ["idle" "pending" "in-progress"]]
         (passes-for-updated-config #(assoc-in % [:sites 0 :state :ongoing-check] val))))
     (testing "site > :state > invalid :ongoing-check values, throws"
-      (doseq [val [:some :bogus nil]]
+      (doseq [val [:some :bogus nil :idle :pending :in-progress]]
         (throws-for-updated-config #(assoc-in % [:sites 0 :state :ongoing-check] val))))))

@@ -10,7 +10,7 @@
     :next-check-utc 1,
     :last-error-utc nil,
     :content-snippet "doodle of the day",
-    :ongoing-check :idle,
+    :ongoing-check "idle",
     :fail-counter 0,
     :last-change-utc 0}}],
  :config {:default-schedule "0 0 9 * * *", :timezone "Europe/London"}}

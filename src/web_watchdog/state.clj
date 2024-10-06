@@ -24,7 +24,7 @@
                          :fail-counter   0
                          :last-error-utc nil
                          :last-error-msg nil
-                         :ongoing-check :idle}}]
+                         :ongoing-check "idle"}}]
    ;; Global configuration.
    :config {:default-schedule "0 0 9 * * *"
             :timezone "Europe/London"}})
@@ -48,7 +48,7 @@
            :fail-counter s/Int
            :last-error-utc (s/maybe s/Int)
            :last-error-msg (s/maybe s/Str)
-           :ongoing-check (s/enum :idle :pending :in-progress)}})
+           :ongoing-check (s/enum "idle" "pending" "in-progress")}})
 
 (s/defschema AppStateSchema
   {:sites [SiteSchema]
@@ -72,7 +72,7 @@
   "Because state gets persisted on every change, it may be in an intermediate unexpected state.
    For example, the program was killed while performing a site check."
   [state]
-  (let [set-ongoing-check-to-idle (fn [site] (assoc-in site [:state :ongoing-check] :idle))]
+  (let [set-ongoing-check-to-idle (fn [site] (assoc-in site [:state :ongoing-check] "idle"))]
     (-> state
         (update-in [:sites] #(mapv set-ongoing-check-to-idle %)))))
 

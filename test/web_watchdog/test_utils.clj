@@ -44,7 +44,7 @@
                                 :fail-counter    0
                                 :last-error-utc  nil
                                 :last-error-msg  nil
-                                :ongoing-check   :idle}}]
+                                :ongoing-check   "idle"}}]
      (merge-with merge default-site overrides))))
 
 (defn set-sites [app-state sites]
