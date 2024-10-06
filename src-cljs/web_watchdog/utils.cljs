@@ -3,6 +3,10 @@
             [goog.string :as gstring]
             [goog.string.format]))
 
+(defn any-non-idle-site? [app-state]
+  (let [site-idle? (fn [site] (= "idle" (get-in site [:state :ongoing-check])))]
+    (not-every? site-idle? (:sites app-state))))
+
 (defn today? [date]
   (let [now  (js/Date.)]
     (and (= (.getDate date) (.getDate now))

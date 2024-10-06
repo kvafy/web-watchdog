@@ -9,9 +9,10 @@
 ;; and browser re-renders the affected portions of the page.
 (defonce app-state (reagent/atom {}))
 
-(defn poll-current-state! []
+(defn poll-current-state! [post-poll-callback]
   (letfn [(success-handler [json]
-            (as-> json data
-                  (js->clj data :keywordize-keys true)
-                  (reset! app-state data)))]
+            (as-> json $
+              (js->clj $ :keywordize-keys true)
+              (reset! app-state $)
+              (post-poll-callback $)))]
     (.getJSON js/$ "rest/current-state" success-handler)))

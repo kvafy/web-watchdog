@@ -1,7 +1,8 @@
 (ns web-watchdog.core
   (:require [reagent.dom]
             [web-watchdog.components :as components]
-            [web-watchdog.state :as state]))
+            [web-watchdog.state :as state]
+            [web-watchdog.utils :as utils]))
 
 (defn init-reagent! []
   ; Reagent will render the 'content' component into
@@ -27,16 +28,19 @@
                         (-> (js/$ "[data-bs-toggle='popover']")
                             (.popover "hide"))))))
 
-(defn init-state-refresh! []
+(defn run-state-refresh-loop! [app-state]
   ; Periodically poll for current state.
   ; Reagent will re-render UI based on the current state.
-  (state/poll-current-state!)
-  (js/setInterval state/poll-current-state! (* 10 1000)))
+  (let [first-poll? (nil? app-state)]
+    (if first-poll?
+      (state/poll-current-state! run-state-refresh-loop!)
+      (let [interval (if (utils/any-non-idle-site? @state/app-state) 500 (* 10 1000))]
+        (js/setTimeout state/poll-current-state! interval run-state-refresh-loop!)))))
 
 (defn on-document-ready []
   (init-reagent!)
   (init-bootstrap!)
-  (init-state-refresh!))
+  (run-state-refresh-loop! nil))
 
 ; JavaScript start-up actions.
 (js/$ on-document-ready) ; Equivalent of jQuery2 `$(document).on('ready', <fn>)`
