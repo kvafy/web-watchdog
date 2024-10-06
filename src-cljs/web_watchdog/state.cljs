@@ -15,4 +15,4 @@
               (js->clj $ :keywordize-keys true)
               (reset! app-state $)
               (post-poll-callback $)))]
-    (.getJSON js/$ "rest/current-state" success-handler)))
+    (.getJSON js/jQuery "rest/current-state" success-handler)))

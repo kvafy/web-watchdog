@@ -10,6 +10,12 @@
      [:span k] ": "
      [:span.monospace v]]))
 
+(defn request-site-refresh! [site-id]
+  (let [url (str "sites/" site-id "/refresh")
+        data ""
+        on-success #(state/poll-current-state! (constantly nil))]
+    (.post js/jQuery url data on-success)))
+
 (defn configuration []
   [:div {:class "col-xs-12"}
    [:h1 "Global configuration"]
@@ -57,24 +63,31 @@
                                    :text      "Last check succeeded"}
                      :else        {:color-css "text-muted"
                                    :icon-css  "bi bi-question-circle"
-                                   :text      "No check performed yet"})]
-    [:tr {:class (:tr-class status)
-          ; Bootstrap Popover properties
-          :data-bs-toggle   "popover"
-          :data-bs-title    (:title s)
-          :data-bs-content  (reagent.dom.server/render-to-string (site-tooltip s))
-          :data-bs-html     "true"
-          :data-placement   "bottom"
-          ; Works together with `.popover {max-width: ...}` CSS.
-          :data-container   "#sites-table"}
-     [:td
+                                   :text      "No check performed yet"})
+        popover-props {; Bootstrap Popover properties
+                       :data-bs-toggle   "popover"
+                       :data-bs-title    (:title s)
+                       :data-bs-content  (reagent.dom.server/render-to-string (site-tooltip s))
+                       :data-bs-html     "true"
+                       :data-placement   "bottom"
+                       ; Works together with `.popover {max-width: ...}` CSS.
+                       :data-container   "#sites-table"}]
+    [:tr {:class (:tr-class status)}
+     [:td popover-props
       [:a {:class "link-light" :href (:url s), :target "_blank"} (:title s)]]
-     [:td (utils/utc->date-str (-> s :state :last-check-utc))]
-     [:td (utils/utc->date-str (-> s :state :last-change-utc))]
-     [:td (utils/utc->date-str (-> s :state :last-error-utc))]
-     [:td {:class (:color-css status)}
+     [:td popover-props (utils/utc->date-str (-> s :state :last-check-utc))]
+     [:td popover-props (utils/utc->date-str (-> s :state :last-change-utc))]
+     [:td popover-props (utils/utc->date-str (-> s :state :last-error-utc))]
+     [:td (merge {:class (:color-css status)} popover-props)
       [:span {:class (:icon-css status)
-              :title (:text status)}]]]))
+              :title (:text status)}]]
+     [:td
+      [:div.dropleft
+       [:button {:class "btn btn-sm dropdown-toggle", :type "button", :data-bs-toggle "dropdown"}]
+       [:ul.dropdown-menu
+        [:li [:a {:class (str "dropdown-item" (if (not= ongoing-check "idle") " disabled" "")),
+                  :on-click #(request-site-refresh! (:id s))}
+              "Refresh now"]]]]]]))
 
 (defn sites []
   [:div {:class "col-xs-12"}
@@ -86,7 +99,8 @@
       [:th "Last Check"]
       [:th "Last Change"]
       [:th "Last Error"]
-      [:th "Status"]]]
+      [:th "Status"]
+      [:th]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
        ^{:key (:id s)} [site s])]]])

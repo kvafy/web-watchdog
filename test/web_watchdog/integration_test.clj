@@ -1,5 +1,6 @@
 (ns web-watchdog.integration-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clj-http.client :as http]
+            [clojure.test :refer [deftest is testing]]
             [web-watchdog.core :as core]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.state :refer [default-state] :as state]
@@ -124,6 +125,42 @@
           ;; Force a site to become due.
           (reset! mock-download-result-atom {:success "updated content"})
           (swap! app-state-atom update-in [:sites 0] make-site-due-for-check)
+          (Thread/sleep settling-delay-ms)
+          ;; Verify that a site check was attempted and recorded.
+          (assert-site-updated-with-success (get-in @app-state-atom [:sites 0]) "updated content")
+          (assert-downloads-attempted-for-sites @download-arg-history-atom [initial-site])
+          (assert-app-state-conforms-to-schema @app-state-atom))))))
+
+(deftest forced-site-check-integration-test
+  (let [initial-site (-> (build-site "A") (core/update-site-with-download-result ["initial content" nil]))
+        initial-app-state (-> default-state (set-sites [initial-site]))
+        server-port (find-free-port)
+        test-system-cfg (-> system/system-cfg
+                            (test-utils/with-in-memory-app-state initial-app-state)
+                            test-utils/with-fake-downloader
+                            test-utils/with-fake-email-sender
+                            (assoc-in [:web-watchdog.web/server :port] server-port))
+        http-post (fn [path] (http/post (str "http://localhost:" server-port path) {:throw-exceptions false}))]
+    (testing "trigger check of a non-existing site, fails"
+      (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server :web-watchdog.scheduling/site-checker]]
+        (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)
+              download-arg-history-atom (-> sut ::test-utils/fake-download-fn :arg-history)]
+          ;; Request an immediate site check.
+          (let [resp (http-post (str "/sites/unknown-site-id/refresh"))]
+            (is (= 404 (:status resp))))
+          (Thread/sleep settling-delay-ms)
+          ;; Verify that no site check was attempted.
+          (is (= initial-app-state @app-state-atom))
+          (is (empty? @download-arg-history-atom)))))
+    (testing "trigger check of an existing site, succeeds"
+      (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server :web-watchdog.scheduling/site-checker]]
+        (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)
+              mock-download-result-atom (-> sut ::test-utils/fake-download-fn :mock-result)
+              download-arg-history-atom (-> sut ::test-utils/fake-download-fn :arg-history)]
+          (reset! mock-download-result-atom {:success "updated content"})
+          ;; Request an immediate site check.
+          (let [resp (http-post (str "/sites/" (:id initial-site) "/refresh"))]
+            (is (= 200 (:status resp))))
           (Thread/sleep settling-delay-ms)
           ;; Verify that a site check was attempted and recorded.
           (assert-site-updated-with-success (get-in @app-state-atom [:sites 0]) "updated content")

@@ -97,6 +97,17 @@
         (async/close! ch)))
     ch))
 
+(defn make-site-due-now!
+  "Makes the site immediately due for a check.
+   Returns true if the `site-id` exists, false otherwise."
+  [app-state-atom site-id]
+  (if-let [[site-idx _] (core/find-site-by-id @app-state-atom site-id)]
+    (do
+      (utils/log (format "Making site '%s' due now" site-id))
+      (swap! app-state-atom assoc-in [:sites site-idx :state :next-check-utc] (utils/now-utc))
+      true)
+    false))
+
 
 ;; Site checker as a component.
 
