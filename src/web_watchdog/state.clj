@@ -29,33 +29,36 @@
    :config {:default-schedule "0 0 9 * * *"
             :timezone "Europe/London"}})
 
-(def state-schema
-  {:sites [{:id s/Str
-            :title s/Str
-            :url s/Str
-            (s/optional-key :content-extractors) [(s/conditional
-                                                   #(contains? #{:css :xpath :regexp} (first %))
-                                                   [(s/one s/Keyword "extractor type") (s/one s/Str "param")]
-                                                   #(contains? #{:html->text} (first %))
-                                                   [(s/one s/Keyword "extractor type")])]
-            :emails (s/conditional (every-pred vector? not-empty) [s/Str])
-            (s/optional-key :schedule) s/Str
-            :state {:last-check-utc (s/maybe s/Int)
-                    :next-check-utc (s/maybe s/Int)
-                    :content-hash (s/maybe s/Str)
-                    :content-snippet (s/maybe s/Str)
-                    :last-change-utc (s/maybe s/Int)
-                    :fail-counter s/Int
-                    :last-error-utc (s/maybe s/Int)
-                    :last-error-msg (s/maybe s/Str)
-                    :ongoing-check (s/enum :idle :pending :in-progress)}}]
+(s/defschema SiteSchema
+  {:id s/Str
+   :title s/Str
+   :url s/Str
+   (s/optional-key :content-extractors) [(s/conditional
+                                          #(contains? #{:css :xpath :regexp} (first %))
+                                          [(s/one s/Keyword "extractor type") (s/one s/Str "param")]
+                                          #(contains? #{:html->text} (first %))
+                                          [(s/one s/Keyword "extractor type")])]
+   :emails (s/conditional (every-pred vector? not-empty) [s/Str])
+   (s/optional-key :schedule) s/Str
+   :state {:last-check-utc (s/maybe s/Int)
+           :next-check-utc (s/maybe s/Int)
+           :content-hash (s/maybe s/Str)
+           :content-snippet (s/maybe s/Str)
+           :last-change-utc (s/maybe s/Int)
+           :fail-counter s/Int
+           :last-error-utc (s/maybe s/Int)
+           :last-error-msg (s/maybe s/Str)
+           :ongoing-check (s/enum :idle :pending :in-progress)}})
+
+(s/defschema AppStateSchema
+  {:sites [SiteSchema]
    :config
      {:default-schedule s/Str
       (s/optional-key :timezone) s/Str}})
 
 (defn validate [state]
   ;; Basic schema validation.
-  (s/validate state-schema state)
+  (s/validate AppStateSchema state)
   ;; Domain-specific check: All site IDs must be unique
   (let [dupe-ids (->> (:sites state)
                       (group-by :id)

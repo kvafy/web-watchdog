@@ -17,6 +17,9 @@
   (let [delta (- time (utils/now-utc))]
     (is (<= (abs delta) 5000))))
 
+(defn assert-app-state-conforms-to-schema [app-state]
+  (is (not-thrown? (state/validate app-state))))
+
 (defn assert-downloads-attempted-for-sites [url-history sites]
   (let [expected-history (mapv :url sites)]
     (is (= (set url-history) (set expected-history)))))
@@ -77,7 +80,8 @@
           (Thread/sleep (+ download-delay-ms settling-delay-ms))
           (let [updated-site (-> @app-state-atom (get-in [:sites 0]))]
             (assert-site-updated-with-success updated-site)
-            (assert-emails-sent-for-sites @email-history-atom [updated-site])))))))
+            (assert-emails-sent-for-sites @email-history-atom [updated-site])
+            (assert-app-state-conforms-to-schema @app-state-atom)))))))
 
 
 (deftest content-change-integration-test
@@ -115,4 +119,5 @@
           (Thread/sleep settling-delay-ms)
           ;; Verify that a site check was attempted and recorded.
           (assert-site-updated-with-success (get-in @app-state-atom [:sites 0]) "updated content")
-          (assert-downloads-attempted-for-sites @download-arg-history-atom [initial-site]))))))
+          (assert-downloads-attempted-for-sites @download-arg-history-atom [initial-site])
+          (assert-app-state-conforms-to-schema @app-state-atom))))))

@@ -1,11 +1,14 @@
 (ns web-watchdog.core-test
   (:require [clojure.test :refer [deftest is testing]]
+            [schema.core]
             [web-watchdog.core :as core]
-            [web-watchdog.state :refer [default-state]]
-            [web-watchdog.test-utils :refer [build-site failing-download set-sites succeeding-download]]
             [web-watchdog.networking]
+            [web-watchdog.state :refer [default-state] :as state]
+            [web-watchdog.test-utils :refer [build-site failing-download not-thrown? set-sites succeeding-download]]
             [web-watchdog.utils :as utils]))
 
+(defn assert-conforms-to-site-schema [site]
+  (is (not-thrown? (schema.core/validate state/SiteSchema site))))
 
 (deftest content-extraction-test
   (let [inner-span-content "World"
@@ -130,22 +133,24 @@
                                         :fail-counter   5
                                         :last-error-msg "download failed"}})
               fake-downloader (succeeding-download site-data)]
-          (let [siteOK (core/check-site site-with-error fake-downloader)]
+          (let [site-ok (core/check-site site-with-error fake-downloader)]
             (testing "time of check is updated"
-              (is (= check-time (get-in siteOK [:state :last-check-utc]))))
+              (is (= check-time (get-in site-ok [:state :last-check-utc]))))
             (testing "hash of site content is updated"
-              (is (not= "old-hash" (get-in siteOK [:state :content-hash]))))
+              (is (not= "old-hash" (get-in site-ok [:state :content-hash]))))
             (testing "content snippet of site content is updated"
-              (is (= site-data (get-in siteOK [:state :content-snippet]))))
+              (is (= site-data (get-in site-ok [:state :content-snippet]))))
             (testing "last change timestamp is updated"
-              (is (= check-time (get-in siteOK [:state :last-change-utc]))))
+              (is (= check-time (get-in site-ok [:state :last-change-utc]))))
             (testing "fail counter and error message is reset"
-              (is (= 0 (get-in siteOK [:state :fail-counter])))
-              (is (= nil (get-in siteOK [:state :last-error-msg]))))
+              (is (= 0 (get-in site-ok [:state :fail-counter])))
+              (is (= nil (get-in site-ok [:state :last-error-msg]))))
             (testing "last error timestamp remains untouched"
               (is (= nil
                      (get-in site-with-error [:state :last-error-utc])
-                     (get-in siteOK [:state :last-error-utc])))))))
+                     (get-in site-ok [:state :last-error-utc]))))
+            (testing "produces valid state"
+              (assert-conforms-to-site-schema site-ok)))))
       (testing "successful download without content change"
         (let [site-data "downloaded-content"
               fake-downloader (succeeding-download site-data)
@@ -174,7 +179,9 @@
             (testing "last error timestamp remains untouched"
               (is (= nil
                      (get-in site-static [:state :last-error-utc])
-                     (get-in site-ok [:state :last-error-utc])))))))
+                     (get-in site-ok [:state :last-error-utc]))))
+            (testing "produces valid state"
+              (assert-conforms-to-site-schema site-ok)))))
       (testing "failed download"
         (let [site-ok (build-site
                        "originally without any error"
@@ -205,7 +212,9 @@
               (is (= check-time (get-in site-with-error [:state :last-error-utc]))))
             (testing "error message is saved"
               (is (not= nil (get-in site-with-error [:state :last-error-msg])))
-              (is (= "download failed" (get-in site-with-error [:state :last-error-msg])))))))
+              (is (= "download failed" (get-in site-with-error [:state :last-error-msg]))))
+            (testing "produces valid state"
+              (assert-conforms-to-site-schema site-with-error)))))
       (testing "all content extractors"
         (let [extracted-data "Extracted data"
               site-html-data (str "<html><body>"
@@ -223,4 +232,6 @@
                   (is (= extracted-data (get-in site-ok [:state :content-snippet]))))
                 (testing "hash of site content is updated"
                   (is (= (utils/md5 extracted-data)
-                         (get-in site-ok [:state :content-hash]))))))))))))
+                         (get-in site-ok [:state :content-hash]))))
+                (testing "produces valid state"
+                  (assert-conforms-to-site-schema site-ok))))))))))
