@@ -27,14 +27,12 @@ Used technologies:
 
 * JRE 21+
 * Leiningen (build tool for Clojure)
-* *sendmail* executable on the PATH and configured
-  ([gmail configuration](https://www.tutorialspoint.com/configure-sendmail-with-gmail-on-ubuntu))
 
 ## Running
 
 Execute the following commands to run web-watchdog:
 
-    ```shell
+    ```
     export MAILER_USER=<gmail-account>
     export MAILER_PASSWORD=<app-password>
 
@@ -43,6 +41,9 @@ Execute the following commands to run web-watchdog:
     ```
 
 Open http://localhost:8080 in your browser.
+
+Alternatively, you can install web-watchdog as a _systemd_ service. See the
+instructions in `scripts/web-watchdog`.
 
 ## Configuration
 

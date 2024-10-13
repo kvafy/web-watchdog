@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+### BEGIN INIT INFO
+# Provides:          web-watchdog
+# Required-Start:    $local_fs $network $remote_fs $syslog
+# Required-Stop:     $local_fs $network $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Website checker
+# Description: A custom tool that checks websites according to a schedule.
+### END INIT INFO
+
+# Install (tested on Ubuntu):
+#  - Configure the variables further down marked with "TODO".
+#  - Copy the modified script into /etc/init.d:
+#      $ sudo cp scripts/web-watchdog /etc/init.d/web-watchdog
+#      $ sudo chmod +x /etc/init.d/web-watchdog
+#  - In the $APP_DIR (see below) create a "set-up-env-secrets.sh" file that
+#    exports environment variables for your SMTP (username, password):
+#      export MAILER_USER="...@gmail.com"
+#      export MAILER_PASSWORD="..."
+#  - Register the new service:
+#      $ sudo update-rc.d web-watchdog defaults
+#  - Now web-watchdog will be automatically started when then system boots.
+#    You can also start/stop manually by running:
+#      $ sudo service web-watchdog start
+#      $ sudo service web-watchdog stop
+
+# TODO(fill-me-in): The user running web-watchdog.
+USER="TODO"
+# TODO(fill-me-in): Directory with the uberjar and configuration.
+APP_DIR="/home/${USER}/web-watchdog"
+
+PID_FILE=".web-watchdog.pid"
+RUN_AS_USER="sudo -u ${USER} --preserve-env"
+
+cd "${APP_DIR}"
+
+# Load service accounts, passwords etc. from an external file.
+if [ ! -f "./set-up-env-secrets.sh" ]; then
+  echo "Error: The file '$(pwd)/set-up-env-secrets.sh' is missing. Create it."
+  exit 1
+fi
+source "./set-up-env-secrets.sh"
+
+case "$1" in
+  start)
+    echo "Starting Service"
+    LATEST_JAR=$(ls *.jar | tail -n1)
+    ${RUN_AS_USER} java -jar "${LATEST_JAR}" >> web-watchdog.log 2>&1 &
+    PID=$!
+    ${RUN_AS_USER} echo "$!" > "${PID_FILE}"
+    ;;
+  stop)
+    echo "Stopping Service"
+    if [ -f "${PID_FILE}" ]; then
+      kill "$(cat ${PID_FILE})"
+      rm "${PID_FILE}"
+    fi
+    ;;
+  *)
+    echo "Usage: /etc/init.d/web-watchdog {start|stop}"
+    exit 1
+    ;;
+esac
