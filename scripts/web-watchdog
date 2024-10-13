@@ -57,8 +57,13 @@ case "$1" in
       rm "${PID_FILE}"
     fi
     ;;
+  restart)
+    echo "Restarting Service"
+    $0 stop
+    $0 start
+    ;;
   *)
-    echo "Usage: /etc/init.d/web-watchdog {start|stop}"
+    echo "Usage: /etc/init.d/web-watchdog {start|stop|restart}"
     exit 1
     ;;
 esac
