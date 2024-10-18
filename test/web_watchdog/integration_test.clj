@@ -37,7 +37,9 @@
    (is-approx-now (get-in new-site [:state :last-check-utc])))
   ([new-site new-content]
    (assert-site-updated-with-success new-site)
-   (is (= new-content (get-in new-site [:state :content-snippet])))))
+   (is (= new-content (get-in new-site [:state :content-snippet])))
+   (is (= (utils/md5 new-content)
+          (get-in new-site [:state :content-hash])))))
 
 (defn update-site-with-successful-download-result [site content]
   (core/update-site-with-download-result site [content nil]))
@@ -59,7 +61,7 @@
     (let [file-path "test/resources/test-google.edn"
           loaded-state (persistence/load-state file-path)]
       (is (some? loaded-state))  ;; File exists.
-      (is (not-thrown? (state/validate loaded-state))))))
+      (assert-app-state-conforms-to-schema loaded-state))))
 
 
 (deftest e2e-smoke-test
@@ -67,7 +69,7 @@
     ;; Bring up the full system whose config is as close as possible to typical
     ;; production run, mocking/reconfiguring only the bare minimum.
     (let [test-system-cfg (-> system/system-cfg
-                              ;; Read app state from a test file, and don't modify the file.
+                              ;; Read app state from a test file.
                               (assoc-in [:web-watchdog.state/file-based-app-state :file-path] tmp-state-file)
                               (assoc-in [:web-watchdog.state/file-based-app-state :fail-if-not-found?] true)
                               (assoc-in [:web-watchdog.state/file-based-app-state :save-debounce-ms] 0)
