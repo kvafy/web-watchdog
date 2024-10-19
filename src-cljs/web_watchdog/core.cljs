@@ -1,5 +1,6 @@
 (ns web-watchdog.core
-  (:require [reagent.dom]
+  (:require [clojure.core.async :as async]
+            [reagent.dom]
             [web-watchdog.components :as components]
             [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
@@ -28,19 +29,24 @@
                         (-> (js/$ "[data-bs-toggle='popover']")
                             (.popover "hide"))))))
 
-(defn run-state-refresh-loop! [app-state]
-  ; Periodically poll for current state.
-  ; Reagent will re-render UI based on the current state.
-  (let [first-poll? (nil? app-state)]
-    (if first-poll?
-      (state/poll-current-state! run-state-refresh-loop!)
-      (let [interval (if (utils/any-non-idle-site? @state/app-state) 500 (* 10 1000))]
-        (js/setTimeout state/poll-current-state! interval run-state-refresh-loop!)))))
+(defn run-state-refresh-loop! []
+  ; Periodically polls for the current state.
+  ; Reagent will observe the state changes and re-render the UI accordingly.
+  (async/go-loop []
+    (let [wait-ms (if (utils/any-non-idle-site? @state/app-state) 250 (* 10 1000))
+          wait-ch (async/timeout wait-ms)
+          ;; Wait for a timeout, or skip it if state is refreshed by other means.
+          [_ ch] (async/alts! [state/on-state-poll-finished-ch wait-ch])]
+      (when (= ch wait-ch)
+        (state/poll-current-state!)))
+    (recur))
+  ;; Kick off the state polling.
+  (state/poll-current-state!))
 
 (defn on-document-ready []
   (init-reagent!)
   (init-bootstrap!)
-  (run-state-refresh-loop! nil))
+  (run-state-refresh-loop!))
 
 ; JavaScript start-up actions.
 (js/$ on-document-ready) ; Equivalent of jQuery2 `$(document).on('ready', <fn>)`

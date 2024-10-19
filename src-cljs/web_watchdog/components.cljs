@@ -13,7 +13,7 @@
 (defn request-site-refresh! [site-id]
   (let [url (str "sites/" site-id "/refresh")
         data ""
-        on-success #(state/poll-current-state! (constantly nil))]
+        on-success #(state/poll-current-state!)]
     (.post js/jQuery url data on-success)))
 
 (defn configuration []

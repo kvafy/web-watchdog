@@ -1,5 +1,6 @@
 (ns web-watchdog.state
-  (:require [reagent.core :as reagent]))
+  (:require [clojure.core.async :as async]
+            [reagent.core :as reagent]))
 
 ;; Application state.
 ;; The web UI rendered by Reagent is basically a mathematical
@@ -9,10 +10,13 @@
 ;; and browser re-renders the affected portions of the page.
 (defonce app-state (reagent/atom {}))
 
-(defn poll-current-state! [post-poll-callback]
+;; Channel to signal when the app state has been refreshed.
+(defonce on-state-poll-finished-ch (async/chan))
+
+(defn poll-current-state! []
   (letfn [(success-handler [json]
             (as-> json $
               (js->clj $ :keywordize-keys true)
               (reset! app-state $)
-              (post-poll-callback $)))]
+              (async/put! on-state-poll-finished-ch :state-refreshed)))]
     (.getJSON js/jQuery "rest/current-state" success-handler)))
