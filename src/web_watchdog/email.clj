@@ -25,9 +25,14 @@
          "  </style>"
          "</head>"
          "<body>"
-         "<p>" (format "There seems to be something new on <a href='%s'>%s</a>." (:url new-site) (-> new-site :title escape-html)) "</p>"
-         (format "<p>Previous content: <span class='content'>%s</span></p>" (-> old-site :state :content-snippet escape-html))
-         (format "<p>New content: <span class='content'>%s</span></p>" (-> new-site :state :content-snippet escape-html))
+         (format "<p>There seems to be something new on <a href='%s'>%s</a>.</p>"
+                 (:url new-site)
+                 (-> new-site :title escape-html))
+         (format "<p>Previous content (from %s): <span class='content'>%s</span></p>"
+                 (-> old-site :state :last-change-utc utils/epoch->now-aware-str)
+                 (-> old-site :state :content-snippet escape-html))
+         (format "<p>New content: <span class='content'>%s</span></p>"
+                 (-> new-site :state :content-snippet escape-html))
          "</body>"
          "</html>")
     :site-failing

@@ -17,13 +17,13 @@
         (notify-about-site-changes! fake-sender old-state new-state)
         (is (empty? @sent-emails))))
     (testing "mail sent if the content changes"
-      (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "old-hash"}})])
-            new-state (set-sites default-state [(build-site "a" {:state {:content-hash "new-hash"}})])]
+      (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "old-hash", :last-change-utc 1000}})])
+            new-state (set-sites default-state [(build-site "a" {:state {:content-hash "new-hash", :last-change-utc 2000}})])]
         (setup!)
         (notify-about-site-changes! fake-sender old-state new-state)
         (is (= (set (site-emails "a")) @sent-emails))))
     (testing "mail sent if site becomes unavailable"
-      (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "constant"}})])
+      (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "constant", :last-change-utc 1000}})])
             new-state (set-sites default-state [(build-site "a" {:state {:content-hash "constant" :fail-counter 1}})])]
         (setup!)
         (notify-about-site-changes! fake-sender old-state new-state)

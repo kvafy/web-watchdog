@@ -1,17 +1,37 @@
 (ns web-watchdog.utils
   (:require [clojure.core.async :as async :refer [<!, >!]])
-  (:import [java.time Instant ZoneId]))
+  (:import [java.time Instant ZoneId]
+           [java.time.format DateTimeFormatter]
+           [java.time.temporal ChronoField]))
 
 (defn log [msg]
   (printf "[%s] %s\n" (java.util.Date.) msg)
   (flush))
 
+(defn now-utc []
+  (System/currentTimeMillis))
+
 (defn millis-to-local-time [millis]
   (let [tz (ZoneId/systemDefault)]
     (.. (Instant/ofEpochMilli millis) (atZone tz) (toLocalDateTime))))
 
-(defn now-utc []
-  (System/currentTimeMillis))
+(defn epoch->now-aware-str [millis]
+  (let [local-now (millis-to-local-time (now-utc))
+        local-arg (millis-to-local-time millis)
+        same-field? (fn [^ChronoField field]
+                      (= (.get local-now field) (.get local-arg field)))
+        day-fmt (case (mod (.get local-arg ChronoField/DAY_OF_MONTH) 10)
+                  1 "d'st'"
+                  2 "d'nd'"
+                  3 "d'rd'"
+                  "d'th'")
+        fmt (cond (not (same-field? ChronoField/YEAR))
+                  (str "H:mm, " day-fmt " LLL u")
+                  (not (same-field? ChronoField/DAY_OF_YEAR))
+                  (str "H:mm, " day-fmt " LLL")
+                  :else
+                  "H:mm 'today'")]
+    (.format local-arg (DateTimeFormatter/ofPattern fmt))))
 
 (defn md5
   "Generate a md5 checksum for the given string"
