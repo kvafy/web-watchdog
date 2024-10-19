@@ -53,14 +53,14 @@
 
 ;; Orchestrating site checks, both scheduled and immediate.
 
-(defn next-check-time [site global-config]
-  (let [last-check-utc (get-in site [:state :last-check-utc])]
-    (if (nil? last-check-utc)
-      (utils/now-utc)
+(defn next-scheduled-check-time [site global-config]
+  (let [last-check-time (get-in site [:state :last-check-time])]
+    (if (nil? last-check-time)
+      (utils/now-ms)
       (let [schedule (or (get site :schedule) (get global-config :default-schedule))
             tz (get global-config :timezone "UTC")
-            next-check-utc (next-cron-time schedule last-check-utc tz)]
-        next-check-utc))))
+            next-check-time (next-cron-time schedule last-check-time tz)]
+        next-check-time))))
 
 (defn site-idle?-pred [site]
   (let [state (get-in site [:state :ongoing-check])]
@@ -68,29 +68,29 @@
 
 (defn site-next-check-due?-pred [now]
   (fn [site]
-    (let [next-check-utc (get-in site [:state :next-check-utc])]
-      (or (nil? next-check-utc)
-          (<= next-check-utc now)))))
+    (let [next-check-time (get-in site [:state :next-check-time])]
+      (or (nil? next-check-time)
+          (<= next-check-time now)))))
 
-(defn min-next-check-utc [app-state]
+(defn min-next-check-time [app-state]
   (->> (:sites app-state)
         (filter site-idle?-pred)
-        (map #(get-in % [:state :next-check-utc] 0))
+        (map #(get-in % [:state :next-check-time] 0))
         sort first))
 
 (defn due-idle-sites [app-state]
-  (let [now (utils/now-utc)
+  (let [now (utils/now-ms)
         due-and-idle (every-pred site-idle?-pred (site-next-check-due?-pred now))]
     (filter due-and-idle (:sites app-state))))
 
 (defn timeout-at
   "Creates a core.async channel that will be delivered `msg` at the specified time and closed,
    or immediately if that time already passed."
-  [time-utc msg]
+  [time-ms msg]
   (let [ch (async/chan)]
     (async/go
-      (let [now (utils/now-utc)
-            wait-ms (- time-utc now)]
+      (let [now (utils/now-ms)
+            wait-ms (- time-ms now)]
         (when (pos? wait-ms)
           (<! (async/timeout wait-ms)))
         (>! ch msg)
@@ -104,7 +104,7 @@
   (if-let [[site-idx _] (core/find-site-by-id @app-state-atom site-id)]
     (do
       (utils/log (format "Making site '%s' due now" site-id))
-      (swap! app-state-atom assoc-in [:sites site-idx :state :next-check-utc] (utils/now-utc))
+      (swap! app-state-atom assoc-in [:sites site-idx :state :next-check-time] (utils/now-ms))
       true)
     false))
 
@@ -114,17 +114,17 @@
 (defmethod ig/init-key ::site-checker [_ {:keys [app-state blocking-threadpool download-fn]}]
   (let [interrupt-ch (async/chan 1)] ;; Expected events: :stop, :scheduling-changed
     ;; A single core.async process that is reponsible for orchestrating the site checks.
-    ;; It takes the `:next-check-utc` site property as the source of truth. This property is either
+    ;; It takes the `:next-check-time` site property as the source of truth. This property is either
     ;; set and moved forward by the scheduled checks, or it can be artifically set to "now" by the
     ;; user to trigger an immediate check of a site. For the latter, the go process will be woken up
     ;; via the `interrupt-ch`.
     (async/go-loop []
-      (let [next-check-utc (min-next-check-utc @app-state)
-            _ (when (some? next-check-utc) (utils/log (format "Next scheduled check is at %s (excluding sites with an ongoing check)."
-                                                              (utils/millis-to-local-time next-check-utc))))
+      (let [next-check-time (min-next-check-time @app-state)
+            _ (when (some? next-check-time) (utils/log (format "Next scheduled check is at %s (excluding sites with an ongoing check)."
+                                                               (utils/millis-to-local-time next-check-time))))
             chans (cond-> []
                     true (conj interrupt-ch)
-                    (some? next-check-utc) (conj (timeout-at next-check-utc :scheduled-run)))
+                    (some? next-check-time) (conj (timeout-at next-check-time :scheduled-run)))
             [event _] (async/alts! chans :priotity true)]
         (utils/log (format "Site checker woke up with '%s' event." event))
         (if (= event :stop)
@@ -146,8 +146,8 @@
                          (set-site-state-prop! :ongoing-check "in-progress")
                          (swap! app-state update-in [:sites site-idx] #(core/check-site % download-fn))
                          (let [updated-site (get-in @app-state [:sites site-idx])
-                               next-check-utc (next-check-time updated-site (:config @app-state))]
-                           (set-site-state-prop! :next-check-utc next-check-utc)))))
+                               next-check-time (next-scheduled-check-time updated-site (:config @app-state))]
+                           (set-site-state-prop! :next-check-time next-check-time)))))
                   ;; Finish by marking the site check as completed.
                   (set-site-state-prop! :ongoing-check "idle"))))
             (recur)))))
@@ -155,11 +155,11 @@
     ;; than originally planned. This also covers the edge cases when the set of sites is originally empty and
     ;; becomes non-empty and vice versa.
     (add-watch app-state
-               ::site-checker--next-check-utc--monitor
+               ::site-checker--next-check-time--monitor
                (fn [_ _ old-state new-state]
                  ;; Handle nil (~ no sites in the state).
-                 (let [old-next-check (min-next-check-utc old-state)
-                       new-next-check (min-next-check-utc new-state)]
+                 (let [old-next-check (min-next-check-time old-state)
+                       new-next-check (min-next-check-time new-state)]
                    (when (and (not= old-next-check new-next-check)
                               (some? new-next-check)
                               (or (nil? old-next-check)

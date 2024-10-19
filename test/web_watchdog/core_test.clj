@@ -122,7 +122,7 @@
 
 (deftest check-site-test
   (let [check-time 123456]
-    (with-redefs [web-watchdog.utils/now-utc
+    (with-redefs [web-watchdog.utils/now-ms
                   (fn [] check-time)]
       (testing "successful download with content change"
         (let [site-data "downloaded-content"
@@ -135,20 +135,20 @@
               fake-downloader (succeeding-download site-data)]
           (let [site-ok (core/check-site site-with-error fake-downloader)]
             (testing "time of check is updated"
-              (is (= check-time (get-in site-ok [:state :last-check-utc]))))
+              (is (= check-time (get-in site-ok [:state :last-check-time]))))
             (testing "hash of site content is updated"
               (is (not= "old-hash" (get-in site-ok [:state :content-hash]))))
             (testing "content snippet of site content is updated"
               (is (= site-data (get-in site-ok [:state :content-snippet]))))
             (testing "last change timestamp is updated"
-              (is (= check-time (get-in site-ok [:state :last-change-utc]))))
+              (is (= check-time (get-in site-ok [:state :last-change-time]))))
             (testing "fail counter and error message is reset"
               (is (= 0 (get-in site-ok [:state :fail-counter])))
               (is (= nil (get-in site-ok [:state :last-error-msg]))))
             (testing "last error timestamp remains untouched"
               (is (= nil
-                     (get-in site-with-error [:state :last-error-utc])
-                     (get-in site-ok [:state :last-error-utc]))))
+                     (get-in site-with-error [:state :last-error-time])
+                     (get-in site-ok [:state :last-error-time]))))
             (testing "produces valid state"
               (assert-conforms-to-site-schema site-ok)))))
       (testing "successful download without content change"
@@ -162,7 +162,7 @@
                                     :last-error-msg  "download failed"}})]
           (let [site-ok (core/check-site site-static fake-downloader)]
             (testing "time of check is updated"
-              (is (= check-time (get-in site-ok [:state :last-check-utc]))))
+              (is (= check-time (get-in site-ok [:state :last-check-time]))))
             (testing "hash of site content remains untouched" ;; more of a precondition of the test
               (is (= (get-in site-static [:state :content-hash])
                      (get-in site-ok [:state :content-hash]))))
@@ -171,21 +171,21 @@
                      (get-in site-ok [:state :content-snippet]))))
             (testing "last change timestamp remains untouched"
               (is (= nil
-                     (get-in site-static [:state :last-change-utc])
-                     (get-in site-ok [:state :last-change-utc]))))
+                     (get-in site-static [:state :last-change-time])
+                     (get-in site-ok [:state :last-change-time]))))
             (testing "fail counter and error message is reset"
               (is (= 0 (get-in site-ok [:state :fail-counter])))
               (is (= nil (get-in site-ok [:state :last-error-msg]))))
             (testing "last error timestamp remains untouched"
               (is (= nil
-                     (get-in site-static [:state :last-error-utc])
-                     (get-in site-ok [:state :last-error-utc]))))
+                     (get-in site-static [:state :last-error-time])
+                     (get-in site-ok [:state :last-error-time]))))
             (testing "produces valid state"
               (assert-conforms-to-site-schema site-ok)))))
       (testing "failed download"
         (let [site-ok (build-site
                        "originally without any error"
-                       {:state {:last-check-utc  0
+                       {:state {:last-check-time 0
                                 :content-hash    "old-hash"
                                 :content-snippet "old-content-snipet"
                                 :fail-counter    0
@@ -193,7 +193,7 @@
               fake-downloader (failing-download (ex-info "download failed" {}))]
           (let [site-with-error (core/check-site site-ok fake-downloader)]
             (testing "time of check is updated"
-              (is (= check-time (get-in site-with-error [:state :last-check-utc]))))
+              (is (= check-time (get-in site-with-error [:state :last-check-time]))))
             (testing "hash of site content remains untouched"
               (is (= "old-hash"
                      (get-in site-ok [:state :content-hash])
@@ -204,12 +204,12 @@
                      (get-in site-with-error [:state :content-snippet]))))
             (testing "last change timestamp remains untouched"
               (is (= nil
-                     (get-in site-ok [:state :last-change-utc])
-                     (get-in site-with-error [:state :last-change-utc]))))
+                     (get-in site-ok [:state :last-change-time])
+                     (get-in site-with-error [:state :last-change-time]))))
             (testing "fail counter increased"
               (is (= 1 (get-in site-with-error [:state :fail-counter]))))
             (testing "last error timestamp is updated"
-              (is (= check-time (get-in site-with-error [:state :last-error-utc]))))
+              (is (= check-time (get-in site-with-error [:state :last-error-time]))))
             (testing "error message is saved"
               (is (not= nil (get-in site-with-error [:state :last-error-msg])))
               (is (= "download failed" (get-in site-with-error [:state :last-error-msg]))))

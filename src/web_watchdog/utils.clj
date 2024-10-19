@@ -8,7 +8,7 @@
   (printf "[%s] %s\n" (java.util.Date.) msg)
   (flush))
 
-(defn now-utc []
+(defn now-ms []
   (System/currentTimeMillis))
 
 (defn millis-to-local-time [millis]
@@ -16,7 +16,7 @@
     (.. (Instant/ofEpochMilli millis) (atZone tz) (toLocalDateTime))))
 
 (defn epoch->now-aware-str [millis]
-  (let [local-now (millis-to-local-time (now-utc))
+  (let [local-now (millis-to-local-time (now-ms))
         local-arg (millis-to-local-time millis)
         same-field? (fn [^ChronoField field]
                       (= (.get local-now field) (.get local-arg field)))
@@ -74,7 +74,7 @@
 (defn memoize-with-ttl [f ttl-ms]
   (let [cache (atom {})] ;; Format: {<f-args> {:result <f-return>, :timestamp <epoch-millis>}}
     (letfn [(not-expired? [entry]
-              (< (now-utc) (+ (:timestamp entry) ttl-ms)))
+              (< (now-ms) (+ (:timestamp entry) ttl-ms)))
             (lookup-non-expired [args]
               (when-let [entry (get @cache args)]
                 (when (not-expired? entry)
@@ -86,7 +86,7 @@
             (remove-expired! []
               (swap! cache #(filter-map-values not-expired? %)))
             (call-uncached [args]
-              (let [timestamp (now-utc)]
+              (let [timestamp (now-ms)]
                 (try
                   (let [result (apply f args)]
                     {:result result, :timestamp timestamp})

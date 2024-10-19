@@ -66,19 +66,19 @@
    and `failure` is an `ex-info` object."
   [site download-result]
   (let [[data ex-nfo] download-result
-        now (utils/now-utc)
+        now (utils/now-ms)
         content (some-> data (extract-content (get site :content-extractors [])))
         hash (some-> content utils/md5)
         changed (and content (not= hash (-> site :state :content-hash)))]
     (cond-> site
-      true         (assoc-in [:state :last-check-utc] now)
+      true         (assoc-in [:state :last-check-time] now)
       true         (assoc-in [:state :last-error-msg] (ex-message ex-nfo))
       (not ex-nfo) (assoc-in [:state :content-hash] hash)
       (not ex-nfo) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 200))
       (not ex-nfo) (assoc-in [:state :fail-counter] 0)
-      changed      (assoc-in [:state :last-change-utc] now)
+      changed      (assoc-in [:state :last-change-time] now)
       ex-nfo       (update-in [:state :fail-counter] inc)
-      ex-nfo       (assoc-in [:state :last-error-utc] now))))
+      ex-nfo       (assoc-in [:state :last-error-time] now))))
 
 (defn check-site [site download-fn]
   (let [[data ex-nfo]  (-> site :url download-fn)]

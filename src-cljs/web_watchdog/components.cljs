@@ -75,9 +75,9 @@
     [:tr {:class (:tr-class status)}
      [:td popover-props
       [:a {:class "link-light" :href (:url s), :target "_blank"} (:title s)]]
-     [:td popover-props (utils/utc->date-str (-> s :state :last-check-utc))]
-     [:td popover-props (utils/utc->date-str (-> s :state :last-change-utc))]
-     [:td popover-props (utils/utc->date-str (-> s :state :last-error-utc))]
+     [:td popover-props (utils/utc->date-str (-> s :state :last-check-time))]
+     [:td popover-props (utils/utc->date-str (-> s :state :last-change-time))]
+     [:td popover-props (utils/utc->date-str (-> s :state :last-error-time))]
      [:td (merge {:class (:color-css status)} popover-props)
       [:span {:class (:icon-css status)
               :title (:text status)}]]

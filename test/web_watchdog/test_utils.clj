@@ -36,15 +36,15 @@
                        :title  (format "Site %s" label)
                        :url    (format "http://site-%s.com" label)
                        :emails (site-emails label)
-                       :state  {:last-check-utc  nil
-                                :next-check-utc  nil
-                                :content-snippet nil
-                                :content-hash    nil
-                                :last-change-utc nil
-                                :fail-counter    0
-                                :last-error-utc  nil
-                                :last-error-msg  nil
-                                :ongoing-check   "idle"}}]
+                       :state  {:last-check-time  nil
+                                :next-check-time  nil
+                                :content-snippet  nil
+                                :content-hash     nil
+                                :last-change-time nil
+                                :fail-counter     0
+                                :last-error-time  nil
+                                :last-error-msg   nil
+                                :ongoing-check    "idle"}}]
      (merge-with merge default-site overrides))))
 
 (defn set-sites [app-state sites]

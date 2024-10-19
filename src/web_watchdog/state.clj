@@ -16,14 +16,14 @@
                                  [:html->text]]
             :emails     ["my@email.com"]
             :schedule   "0 0 9 * * *"
-            :state      {:last-check-utc nil
-                         :next-check-utc nil
-                         :content-hash   nil
-                         :content-snippet nil
-                         :last-change-utc nil
-                         :fail-counter   0
-                         :last-error-utc nil
-                         :last-error-msg nil
+            :state      {:last-check-time  nil
+                         :next-check-time  nil
+                         :content-hash     nil
+                         :content-snippet  nil
+                         :last-change-time nil
+                         :fail-counter     0
+                         :last-error-time  nil
+                         :last-error-msg   nil
                          :ongoing-check "idle"}}]
    ;; Global configuration.
    :config {:default-schedule "0 0 9 * * *"
@@ -40,13 +40,13 @@
                                           [(s/one s/Keyword "extractor type")])]
    :emails (s/conditional (every-pred vector? not-empty) [s/Str])
    (s/optional-key :schedule) s/Str
-   :state {:last-check-utc (s/maybe s/Int)
-           :next-check-utc (s/maybe s/Int)
+   :state {:last-check-time (s/maybe s/Int)
+           :next-check-time (s/maybe s/Int)
            :content-hash (s/maybe s/Str)
            :content-snippet (s/maybe s/Str)
-           :last-change-utc (s/maybe s/Int)
+           :last-change-time (s/maybe s/Int)
            :fail-counter s/Int
-           :last-error-utc (s/maybe s/Int)
+           :last-error-time (s/maybe s/Int)
            :last-error-msg (s/maybe s/Str)
            :ongoing-check (s/enum "idle" "pending" "in-progress")}})
 

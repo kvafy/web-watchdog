@@ -40,20 +40,21 @@
                       ;(assoc-in [:web-watchdog.state/file-based-app-state :save-on-change?] false)
                       ;(dissoc :web-watchdog.scheduling/site-checker)
                       ;(dissoc :web-watchdog.web/server)
-                      ;(test-utils/with-fake-email-sender {:verbose true})
+                      (test-utils/with-fake-email-sender {:verbose true})
                       ))
+
 
   (reloaded-stop)
 
   ;; Triggerring site checks.
   (let [scope :site-0
         app-state-atom (:web-watchdog.state/file-based-app-state repl-system)
-        reset-next-check-utc (fn [site] (assoc-in site [:state :next-check-utc] (utils/now-utc)))]
+        reset-next-check-time (fn [site] (assoc-in site [:state :next-check-time] (utils/now-ms)))]
     (case scope
       :all-sites
-      (swap! app-state-atom update-in [:sites] #(mapv reset-next-check-utc %))
+      (swap! app-state-atom update-in [:sites] #(mapv reset-next-check-time %))
       :site-0
-      (swap! app-state-atom update-in [:sites 0] reset-next-check-utc))
+      (swap! app-state-atom update-in [:sites 0] reset-next-check-time))
     nil)
 
 
@@ -70,8 +71,8 @@
 
   ;; Backfill a property to all sites in the `state.edn` file.
   (let [state-file "state.edn"
-        prop-path [:state :next-check-utc]
-        merge-val-fn (constantly {:state {:next-check-utc 0}})
+        prop-path [:state :next-check-time]
+        merge-val-fn (constantly {:state {:next-check-time 0}})
         backfill-site (fn [site]
                         (if (some? (get-in site prop-path))
                           (do (printf "Site '%s' already has '%s' set, skipping\n" (:title site) prop-path)

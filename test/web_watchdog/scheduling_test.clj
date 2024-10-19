@@ -1,6 +1,6 @@
 (ns web-watchdog.scheduling-test
   (:require [clojure.test :refer [deftest is testing]]
-            [web-watchdog.scheduling :refer [next-check-time next-cron-time] :as scheduling]
+            [web-watchdog.scheduling :refer [next-scheduled-check-time next-cron-time] :as scheduling]
             [web-watchdog.test-utils :refer [build-site]])
   (:import [java.time Instant]
            [java.time.temporal ChronoUnit]))
@@ -13,8 +13,8 @@
         midnight+1h  (. midnight (plus 1 ChronoUnit/HOURS))
         midnight+24h (. midnight (plus 24 ChronoUnit/HOURS))
         tz "UTC"
-        site-hourly (build-site "hourly-schedule" {:schedule hourly, :state {:last-check-utc (. midnight toEpochMilli)}})
-        site-daily (build-site "default-daily-schedule" {:state {:last-check-utc (. midnight toEpochMilli)}})
+        site-hourly (build-site "hourly-schedule" {:schedule hourly, :state {:last-check-time (. midnight toEpochMilli)}})
+        site-daily (build-site "default-daily-schedule" {:state {:last-check-time (. midnight toEpochMilli)}})
         global-config {:default-schedule daily-at-midnight, :timezone "UTC"}]
     ;; The `next-cron-time` function.
     (testing next-cron-time
@@ -32,8 +32,8 @@
                                  tz)
                  (-> expected-time-str (Instant/parse) (.toEpochMilli)))))))
     ;; The `next-check-time` function.
-    (testing next-check-time
+    (testing next-scheduled-check-time
       (is (= (. midnight+1h toEpochMilli)
-             (next-check-time site-hourly global-config)))
+             (next-scheduled-check-time site-hourly global-config)))
       (is (= (. midnight+24h toEpochMilli)
-             (next-check-time site-daily global-config))))))
+             (next-scheduled-check-time site-daily global-config))))))

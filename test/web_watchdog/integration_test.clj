@@ -15,7 +15,7 @@
 ;; Helper functions.
 
 (defn is-approx-now [time]
-  (let [delta (- time (utils/now-utc))]
+  (let [delta (- time (utils/now-ms))]
     (is (<= (abs delta) 5000))))
 
 (defn assert-app-state-conforms-to-schema [app-state]
@@ -34,7 +34,7 @@
 
 (defn assert-site-updated-with-success
   ([new-site]
-   (is-approx-now (get-in new-site [:state :last-check-utc])))
+   (is-approx-now (get-in new-site [:state :last-check-time])))
   ([new-site new-content]
    (assert-site-updated-with-success new-site)
    (is (= new-content (get-in new-site [:state :content-snippet])))
@@ -46,8 +46,8 @@
 
 (defn make-site-due-for-check [site]
   (-> site
-      (assoc-in [:state :last-check-utc] 0)
-      (assoc-in [:state :next-check-utc] 1)))
+      (assoc-in [:state :last-check-time] 0)
+      (assoc-in [:state :next-check-time] 1)))
 
 (defn find-free-port []
   (with-open [socket (ServerSocket. 0)]
