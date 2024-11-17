@@ -2,8 +2,8 @@
  [{:id "71ce8b4e-97d3-45f0-aa10-7b1434f25c83",
    :title "google homepage",
    :url "https://www.google.com",
-   :content-extractors [[:css "head title"] [:html->text]]
-   :emails ["test@email.com"],
+   :content-extractors [[:css "head title"] [:html->text]],
+   :email-notification {:to ["test@email.com"], :format "old-new"},
    :state
    {:content-hash "initial content hash",
     :last-check-time 0,

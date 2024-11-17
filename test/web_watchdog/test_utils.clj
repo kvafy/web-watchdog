@@ -35,7 +35,8 @@
    (let [default-site {:id     (format "site-id-%s" label)
                        :title  (format "Site %s" label)
                        :url    (format "http://site-%s.com" label)
-                       :emails (site-emails label)
+                       :email-notification {:to (site-emails label)
+                                            :format "old-new"}
                        :state  {:last-check-time  nil
                                 :next-check-time  nil
                                 :content-snippet  nil

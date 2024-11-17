@@ -29,7 +29,7 @@
   "Checks just the `:to` fields, since each test site should have a unique set of emails."
   [email-history sites]
   (let [actual-history (mapv #(select-keys % [:to]) email-history)
-        expected-history (mapv (fn [site] {:to (get site :emails)}) sites)]
+        expected-history (mapv (fn [site] {:to (get-in site [:email-notification :to])}) sites)]
     (is (= (set actual-history) (set expected-history)))))
 
 (defn assert-site-updated-with-success

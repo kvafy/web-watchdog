@@ -27,7 +27,7 @@
   [:div
    [:div.tooltip-section
     [:div.tooltip-key "Notify emails"]
-    [:div.tooltip-value (clojure.string/join ", " (:emails s))]]
+    [:div.tooltip-value (clojure.string/join ", " (get-in s [:email-notification :to]))]]
    (let [schedule (get s :schedule "<default>")]
      [:div.tooltip-section
       [:div.tooltip-key "Schedule"]

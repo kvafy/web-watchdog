@@ -104,6 +104,28 @@
             (insert-cache! args new-entry)
             (unwrap-entry new-entry)))))))
 
+(defn trim
+  "Trims the 'text' to be at most 'limit' characters long, inserting '...'
+   placeholder for the omitted portion. 'mode' is one of :left, :middle ,:right."
+  [text mode limit]
+  (let [text-len (count text)]
+    (cond
+      ;; Text already within the lenght limit, nothing to do.
+      (<= text-len limit)
+      text
+      ;; Limit too small, nothing would be preserved from the original text.
+      (<= limit (count "..."))
+      (apply str (repeat limit \.))
+      ;; There is a meaningful shortening to be done.
+      :else
+      (let [len-to-drop (+ (- text-len limit) (count "..."))
+            [trim-start trim-end] (case mode
+                                    :left   [0 len-to-drop]
+                                    :middle (let [start (/ (- text-len len-to-drop) 2)]
+                                              [start (+ start len-to-drop)])
+                                    :right  [(- text-len len-to-drop) text-len])]
+        (str (subs text 0 trim-start) "..." (subs text trim-end text-len))))))
+
 (defn truncate-at-max
   "Ensure that a string is no longer that the limit"
   [s limit]

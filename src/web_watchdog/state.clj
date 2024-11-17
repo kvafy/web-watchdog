@@ -14,7 +14,8 @@
                                  [:xpath "//li[@data-line-id='lul-district']"]
                                  [:css "span.disruption-summary"]
                                  [:html->text]]
-            :emails     ["my@email.com"]
+            :email-notification {:to ["my@email.com"]
+                                 :format "old-new"}
             :schedule   "0 0 9 * * *"
             :state      {:last-check-time  nil
                          :next-check-time  nil
@@ -38,7 +39,8 @@
                                           [(s/one s/Keyword "extractor type") (s/one s/Str "param")]
                                           #(contains? #{:html->text :sort-elements-by-text} (first %))
                                           [(s/one s/Keyword "extractor type")])]
-   :emails (s/conditional (every-pred vector? not-empty) [s/Str])
+   :email-notification {:to (s/conditional (every-pred vector? not-empty) [s/Str])
+                        :format (s/enum "old-new" "inline-diff")}
    (s/optional-key :schedule) s/Str
    :state {:last-check-time (s/maybe s/Int)
            :next-check-time (s/maybe s/Int)

@@ -50,10 +50,19 @@
                                                                               [:xpath "//*[contains(@class, 'title')]"]
                                                                               [:html->text]
                                                                               [:regexp "(?:BESTSELLER)?(?:[^:]+:)?\\s*(.*)"]])))
-    (testing "site > missing :emails, throws"
-      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :emails])))
-    (testing "site > no :emails, throws"
-      (throws-for-updated-config #(assoc-in % [:sites 0 :emails] [])))
+    (testing "site > missing :email-notification, throws"
+      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :email-notification])))
+    (testing "site > :email-notification > empty :to, throws"
+      (throws-for-updated-config #(assoc-in % [:sites 0 :email-notification :to] [])))
+    (testing "site > :email-notification > missing :format, throws"
+      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :email-notification :format])))
+    (testing "site > :email-notification > valid :format values, passes"
+      (doseq [val ["old-new" "inline-diff"]]
+        (passes-for-updated-config #(assoc-in % [:sites 0 :email-notification :format] val))))
+    (testing "site > :email-notification > invalid :format values, throws"
+      (doseq [val [:old-new :inline-diff nil "bogus"]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :email-notification :format] val)))
+      (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :email-notification :format])))
     (testing "site > missing :schedule, passes (will fall back to schedule from the global config)"
       (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :schedule])))
     (testing "site > missing :state, throws"

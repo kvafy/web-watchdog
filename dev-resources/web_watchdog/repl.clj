@@ -71,14 +71,14 @@
   ;; Backfill a property to all sites in the `state.edn` file.
   (let [state-file "state.edn"
         prop-path [:state :next-check-time]
-        merge-val-fn (constantly {:state {:next-check-time 0}})
+        merge-val-fn (fn [site] {:state {:next-check-time 0}})
         backfill-site (fn [site]
                         (if (some? (get-in site prop-path))
                           (do (printf "Site '%s' already has '%s' set, skipping\n" (:title site) prop-path)
                               site)
                           (do (printf "Adding '%s' to site '%s'\n" prop-path (:title site))
                               ;; Handles correct both top-level and nested properties.
-                              (merge-with merge site (merge-val-fn)))))]
+                              (merge-with merge site (merge-val-fn site)))))]
     (-> (persistence/load-state state-file)
         (update-in [:sites] #(mapv backfill-site %))
         (persistence/save-state! state-file)))
@@ -99,20 +99,9 @@
     (. first-episode text))
 
   (core/extract-content
-   (-> "https://tfl.gov.uk/tube-dlr-overground/status/" (networking/download) (first))
-   [[:css "#service-status-page-board"]
-   ;[:xpath "//div[@id='service-status-page-board']"]
-
-    [:xpath "//li[@data-line-id='lul-district']"]
-
-    [:css "span.disruption-summary"]
-   ;[:xpath "//span[contains(@class, 'disruption-summary')]"]
-
-    [:html->text]])
-
-  (core/extract-content
-   (-> "https://www.knihydobrovsky.cz/knihy/serie/legie" (networking/download) (first))
-   [[:css ".crossroad-products li:last-of-type .title"]
+   (-> "https://www.librarything.com/award/537/Glass-Key-Award" networking/download first)
+   [[:css "table:first-of-type tbody tr"]
+    [:sort-elements-by-text]
     [:html->text]])
 
   nil

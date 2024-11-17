@@ -1,9 +1,27 @@
 (ns web-watchdog.email
-  (:require [hiccup.util :refer [escape-html]]
+  (:require [clojure.string]
+            [hiccup.util :refer [escape-html]]
             [integrant.core :as ig]
+            [plumula.diff :as pd]
             [postal.core]
             [web-watchdog.core :as core]
             [web-watchdog.utils :as utils]))
+
+;; Generating diff emails.
+
+(defn trim-diffs
+  "Trims text of the given diffs, so that first diff is trimmed to '...suffix',
+   all middle diffs trimmed to 'prefix...suffix' and the last diff to 'prefix...'."
+  [limit diffs]
+  (let [last-idx (dec (count diffs))]
+    (mapv (fn [idx diff]
+            (if (not= ::pd/equal (::pd/operation diff))
+              diff  ;; Don't trim insert/delete snippets.
+              (let [mode (cond (= 0 idx) :left, (= last-idx idx) :right, :else :middle)]
+                (update diff ::pd/text utils/trim mode limit))))
+          (range)
+          diffs)))
+
 
 ;; Generic crafting of email contents.
 
@@ -14,7 +32,7 @@
     :site-failing
     (format "[Web-watchdog site down] %s" (:title site))))
 
-(defn mail-body-html [old-site new-site change-type]
+(defn mail-body-html [old-site new-site change-type fmt]
   (condp = change-type
     :content-changed
     (str "<html>"
@@ -22,17 +40,37 @@
          "  <style>"
          "    p:not(:first-of-type) {margin-top: 1em;}"
          "    .content {display: inline-block; font-family: roboto; background-color: #eee; padding: 4px; border: 1px solid #ccc; border-radius: 4px;}"
+         "    .content .diff-insert {background-color: #aaf2aa}"
+         "    .content .diff-delete {background-color: #ffcdd2}"
          "  </style>"
          "</head>"
          "<body>"
          (format "<p>There seems to be something new on <a href='%s'>%s</a>.</p>"
                  (:url new-site)
                  (-> new-site :title escape-html))
-         (format "<p>Previous content (from %s): <span class='content'>%s</span></p>"
-                 (-> old-site :state :last-change-time utils/epoch->now-aware-str)
-                 (-> old-site :state :content-snippet escape-html))
-         (format "<p>New content: <span class='content'>%s</span></p>"
-                 (-> new-site :state :content-snippet escape-html))
+         (case fmt
+           "old-new"
+           (str
+            (format "<p>Previous content (from %s): <span class='content'>%s</span></p>"
+                    (-> old-site :state :last-change-time utils/epoch->now-aware-str)
+                    (-> old-site :state :content-snippet escape-html))
+            (format "<p>New content: <span class='content'>%s</span></p>"
+                    (-> new-site :state :content-snippet escape-html)))
+           "inline-diff"
+           (let [old-content (get-in old-site [:state :content-snippet])
+                 new-content (get-in new-site [:state :content-snippet])
+                 diff->html (fn [diff]
+                              (let [attr (case (::pd/operation diff)
+                                           ::pd/insert "class='diff-insert'"
+                                           ::pd/delete "class='diff-delete'"
+                                           "")]
+                                (str "<span " attr "'>" (-> diff ::pd/text escape-html) "</span>")))]
+             (as-> (pd/diff old-content new-content ::pd/cleanup ::pd/cleanup-semantic) $
+                   (trim-diffs 50 $)
+                   (mapv diff->html $)
+                   (clojure.string/join "\n" $)
+                   (str "<span class='content'>" $ "</span>")))
+           (str "<p>Error: Unknown notification format: " (escape-html fmt) "</p>"))
          "</body>"
          "</html>")
     :site-failing
@@ -76,11 +114,13 @@
 ;; Notifying about app state changes and notifying  through email.
 
 (defn notify-site-changed! [sender-impl old-site new-site change-type]
-  (when (not-empty (:emails new-site))
-    (send-email sender-impl
-                (:emails new-site)
-                (mail-subject new-site change-type)
-                (mail-body-html old-site new-site change-type))))
+  (let [email-to (get-in new-site [:email-notification :to])
+        fmt (get-in new-site [:email-notification :format])]
+    (when (not-empty email-to)
+      (send-email sender-impl
+                  email-to
+                  (mail-subject new-site change-type)
+                  (mail-body-html old-site new-site change-type fmt)))))
 
 (defn notify-about-site-changes! [sender-impl old-state new-state]
   (dorun

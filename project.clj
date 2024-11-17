@@ -8,6 +8,7 @@
                  [org.clojure/core.async "1.6.681"]
                  [prismatic/schema "1.4.1"]
                  [org.jsoup/jsoup "1.18.1"]
+                 [plumula/diff "0.1.1"]
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
                  [clj-http "3.13.0"]
