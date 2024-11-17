@@ -1,6 +1,31 @@
 (ns web-watchdog.core
-  (:require [web-watchdog.utils :as utils])
+  (:require [clojure.set]
+            [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
+
+;; Adding a new site to state.
+
+(defn add-site [app-state site]
+  (let [required-keys #{:title :url :email-notification}
+        optional-keys #{:content-extractors :schedule}
+        all-copied-keys (clojure.set/union required-keys optional-keys)
+        template {:id         (str (java.util.UUID/randomUUID))
+                  :state      {:last-check-time  nil
+                               :next-check-time  0
+                               :content-hash     nil
+                               :content-snippet  nil
+                               :last-change-time nil
+                               :fail-counter     0
+                               :last-error-time  nil
+                               :last-error-msg   nil
+                               :ongoing-check "idle"}}]
+    (when (not= (count required-keys)
+                (-> site (select-keys required-keys) count))
+      (throw (IllegalArgumentException.
+              (format "Site '%s' is missing (one of the) required keys '%s'" site required-keys))))
+    (let [new-site (merge template (select-keys site all-copied-keys))]
+      (update app-state :sites conj new-site))))
+
 
 ;; Extracting content from a site.
 

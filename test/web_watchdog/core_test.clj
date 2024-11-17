@@ -10,6 +10,47 @@
 (defn assert-conforms-to-site-schema [site]
   (is (not-thrown? (schema.core/validate state/SiteSchema site))))
 
+(defn assert-conforms-to-state-schema [site]
+  (is (not-thrown? (schema.core/validate state/AppStateSchema site))))
+
+(deftest add-site-test
+  (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}]
+    (testing "site with required properties only, succeeds"
+      (let [new-state (core/add-site default-state min-request)]
+        (testing "produces valid state"
+          (assert-conforms-to-state-schema new-state))
+        (testing "changes :sites only"
+          (is (= (dissoc default-state :sites) (dissoc new-state :sites))))
+        (testing "adds the site"
+          (is (not= (:sites default-state) (:sites new-state)))
+          (is (= (-> default-state :sites count inc)
+                 (-> new-state :sites count))))
+        (testing "propagates site properties"
+          (let [appended-site (-> new-state :sites last)]
+            (is (= (select-keys appended-site (keys min-request))
+                   min-request))))))
+    (testing "valid site with an unknown property"
+      (let [valid-request (assoc min-request :unknown-property "value")]
+        (testing "succeeds"
+          (is (not-thrown? (core/add-site default-state valid-request)))
+          (testing "unknown property dropped"
+            (let [new-state (core/add-site default-state valid-request)
+                  appended-site (-> new-state :sites last)]
+              (is (false? (contains? appended-site :unknown-property))))))))
+    (testing "site missing a required property, fails"
+      (doseq [key [:title :url :email-notification]]
+        (let [invalid-request (dissoc min-request key)]
+          (is (thrown? IllegalArgumentException (core/add-site default-state invalid-request))))))
+    (testing "site with all possible properties, succeeds"
+      (let [max-request (merge min-request {:content-extractors [[:html->text]], :schedule "<CRON>"})
+            new-state (core/add-site default-state max-request)]
+        (testing "produces valid state"
+          (assert-conforms-to-state-schema new-state))
+        (testing "propagates site properties"
+          (let [appended-site (-> new-state :sites last)]
+            (is (= (select-keys appended-site (keys max-request))
+                   max-request))))))))
+
 (deftest content-extraction-test
   (let [as-elements-singleton (fn [s] (-> s (org.jsoup.Jsoup/parse) (.body) (.children)))
         equal-by-html? (fn [& xs] (->> xs (map #(.html %)) (apply =)))
