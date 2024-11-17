@@ -36,7 +36,7 @@
    (s/optional-key :content-extractors) [(s/conditional
                                           #(contains? #{:css :xpath :regexp} (first %))
                                           [(s/one s/Keyword "extractor type") (s/one s/Str "param")]
-                                          #(contains? #{:html->text} (first %))
+                                          #(contains? #{:html->text :sort-elements-by-text} (first %))
                                           [(s/one s/Keyword "extractor type")])]
    :emails (s/conditional (every-pred vector? not-empty) [s/Str])
    (s/optional-key :schedule) s/Str

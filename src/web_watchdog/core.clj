@@ -4,31 +4,50 @@
 
 ;; Extracting content from a site.
 
-(defn process-select-result
-  "Post-processes the result of Jsoup `select` or `selectXpath` methods.
-   If nothing was matched, returns nil, otherwise converts the result to an HTML string."
-  [^org.jsoup.select.Elements els]
-  (let [no-match (nil? (. els first))]
-    (if no-match nil (. els html))))
+(defn as-element-or-elements [x]
+  (cond
+    (instance? org.jsoup.nodes.Element x) x
+    (instance? org.jsoup.select.Elements x) x
+    (instance? java.lang.String x) (Jsoup/parse x)
+    :else (throw (IllegalArgumentException. (format "Cannot handle value of type %s" (type x))))))
+
+(defn as-string [x]
+  (cond
+    (instance? java.lang.String x) x
+    (instance? org.jsoup.nodes.Element x) (.text x)
+    (instance? org.jsoup.select.Elements x) (.text x)
+    :else (throw (IllegalArgumentException. (format "Cannot handle value of type %s" (type x))))))
+
+(defn assert-elements [x]
+  (if (instance? org.jsoup.select.Elements x)
+    x
+    (throw (IllegalArgumentException. (format "Expected instance of Elements, got %s" (type x))))))
 
 (defn apply-content-extractor
-  "Each type of extractor takes and produces a string, enabling easy chaining."
-  [html-str [op op-arg]]
-  (when-not (nil? html-str)
-    (let [doc (. Jsoup parse html-str)]
-      (case op
-        :xpath
-        (-> doc (.selectXpath op-arg) process-select-result)
-        :css
-        (-> doc (.select op-arg) process-select-result)
-        :html->text
-        (-> doc (.text))
-        :regexp
-        (when-let [match (re-find (re-pattern op-arg) html-str)]
-          (if (vector? match) (second match) match))))))
+  "Depending on the way how the extractors are chained, the `content` argument can be one of the
+   following data types:
+       plain String,
+       JSoup Element (includes JSoup Document),
+       JSoup Elements (result of a CSS/XPath selector)."
+  [content [op op-arg]]
+  (case op
+    :xpath
+    (-> content as-element-or-elements (.selectXpath op-arg))
+    :css
+    (-> content as-element-or-elements (.select op-arg))
+    :sort-elements-by-text
+    (->> content assert-elements (sort-by #(.text %)) (org.jsoup.select.Elements.))
+    :html->text
+    (-> content as-element-or-elements (.text))
+    :regexp
+    (if-let [match (re-find (re-pattern op-arg) (as-string content))]
+      (if (vector? match) (second match) match)
+      "")))
 
-(defn extract-content [data extractor-chain]
-  (reduce apply-content-extractor data extractor-chain))
+(defn extract-content [content-str extractor-chain]
+  (as-> content-str $
+    (reduce apply-content-extractor $ extractor-chain)
+    (as-string $)))
 
 
 ;; Checking sites for a change: Core logic.
@@ -74,7 +93,7 @@
       true         (assoc-in [:state :last-check-time] now)
       true         (assoc-in [:state :last-error-msg] (ex-message ex-nfo))
       (not ex-nfo) (assoc-in [:state :content-hash] hash)
-      (not ex-nfo) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 200))
+      (not ex-nfo) (assoc-in [:state :content-snippet] (utils/truncate-at-max content 50000))
       (not ex-nfo) (assoc-in [:state :fail-counter] 0)
       changed      (assoc-in [:state :last-change-time] now)
       ex-nfo       (update-in [:state :fail-counter] inc)

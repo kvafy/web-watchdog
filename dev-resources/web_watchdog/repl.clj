@@ -43,7 +43,6 @@
                       (test-utils/with-fake-email-sender {:verbose true})
                       ))
 
-
   (reloaded-stop)
 
   ;; Triggerring site checks.
@@ -94,9 +93,6 @@
     (. district-status html)
     board)
 
-  (let [^org.jsoup.nodes.Document doc (.. Jsoup (connect "https://se-radio.net/") (get))
-        ^org.jsoup.select.Elements first-episode (.. doc (select ".megaphone-episodes > *:first-child"))]
-    (. first-episode text))
   ; se-radio RSS, but the URL in links would be ugly :(
   (let [^org.jsoup.nodes.Document doc (.. Jsoup (connect "https://seradio.libsyn.com/rss") (get))
         ^org.jsoup.select.Elements first-episode (.. doc (select "channel item:first-of-type title"))]

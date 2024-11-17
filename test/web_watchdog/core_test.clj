@@ -11,22 +11,17 @@
   (is (not-thrown? (schema.core/validate state/SiteSchema site))))
 
 (deftest content-extraction-test
-  (let [inner-span-content "World"
+  (let [as-elements-singleton (fn [s] (-> s (org.jsoup.Jsoup/parse) (.body) (.children)))
+        equal-by-html? (fn [& xs] (->> xs (map #(.html %)) (apply =)))
+        inner-span-content "World"
         inner-span-tag     (str "<span id=\"inner\"> " inner-span-content " </span>")
         outer-span-content (str "Hello" inner-span-tag)
         outer-span-tag     (str "<span id=\"outer\"> " outer-span-content " </span>")
         html-doc (str "<html><body>" outer-span-tag)]
-    (testing "single extractor: input already failed (nil), propages error (return nil)"
-      (is (= nil (core/apply-content-extractor nil [:regexp #"d"]))))
+    (testing "single extractor: no match for regexp, returns empty string"
+      (is (= "" (core/apply-content-extractor "abc" [:regexp #"d"]))))
 
-    (testing "single extractor: no match for regexp, returns nil"
-      (is (= nil (core/apply-content-extractor "abc" [:regexp #"d"]))))
-    (testing "single extractor: no match for css, returns nil"
-      (is (= nil (core/apply-content-extractor html-doc [:css "#does-not-exist"]))))
-    (testing "single extractor: no match for xpath, returns nil"
-      (is (= nil (core/apply-content-extractor html-doc [:xpath "//*[@id='does-not-exist']"]))))
-
-    (testing "single extractor: extract regexp without capturing group scans"
+    (testing "single extractor: extract regexp without capturing group"
       (is (= "aha!" (core/apply-content-extractor "potato aha! potato" [:regexp #"aha!"]))))
     (testing "single extractor: extract regexp with capturing group"
       (is (= "42" (core/apply-content-extractor "Price is: $42" [:regexp #"Price is: \$(\d+)"]))))
@@ -44,26 +39,32 @@
       (is (= "Hello World"
              (core/apply-content-extractor outer-span-content [:html->text]))))
 
-    (testing "single extractor: extract element from HTML fragment as HTML string"
-      (is (= outer-span-content
-             (core/apply-content-extractor outer-span-tag [:xpath "//span[@id='outer']"])
-             (core/apply-content-extractor outer-span-tag [:css "#outer"]))))
-    (testing "single extractor: extract element from HTML doc as HTML string"
-      (is (= outer-span-content
-             (core/apply-content-extractor html-doc [:xpath "//*[@id='outer']"])
-             (core/apply-content-extractor html-doc [:xpath "//span[@id='outer']"])
-             (core/apply-content-extractor html-doc [:css "#outer"])
-             (core/apply-content-extractor html-doc [:css "span#outer"]))))
+    (testing "single extractor: extract element from HTML fragment"
+      (is (equal-by-html?
+           (as-elements-singleton outer-span-tag)
+           (core/apply-content-extractor outer-span-tag [:xpath "//span[@id='outer']"])
+           (core/apply-content-extractor outer-span-tag [:css "#outer"]))))
+    (testing "single extractor: extract element from HTML doc"
+      (is (equal-by-html?
+           (as-elements-singleton outer-span-tag)
+           (core/apply-content-extractor html-doc [:xpath "//*[@id='outer']"])
+           (core/apply-content-extractor html-doc [:xpath "//span[@id='outer']"])
+           (core/apply-content-extractor html-doc [:css "#outer"])
+           (core/apply-content-extractor html-doc [:css "span#outer"]))))
 
     (testing "extractor chain: empty chain returns the input"
       (is (= "data"
              (core/extract-content "data" []))))
-    (testing "extractor chain: fails matching mid-way"
-     (is (= nil
+    (testing "extractor chain: fails matching mid-way, returns empty string"
+     (is (= ""
             (core/extract-content html-doc [[:css "#outer"] [:css "#does-not-exist"] [:css "#inner"]]))))
     (testing "extractor chain: succeeds"
       (is (= inner-span-content
-             (core/extract-content html-doc [[:css "#outer"] [:css "#inner"]]))))))
+             (core/extract-content html-doc [[:css "#outer"] [:css "#inner"]])))))
+  (let [table-321 "<table> <tr><td>3</td></tr> <tr><td>2</td></tr> <tr><td>1</td></tr> </table>"]
+    (testing "extractor chain with sorting"
+      (is (= "1 2 3"
+             (core/extract-content table-321 [[:css "td"] [:sort-elements-by-text]]))))))
 
 
 (let [siteA0 (build-site "a")
