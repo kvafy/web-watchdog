@@ -1,5 +1,6 @@
 (ns web-watchdog.integration-test
-  (:require [clj-http.client :as http]
+  (:require [cheshire.core :as cheshire]
+            [clj-http.client :as http]
             [clojure.test :refer [deftest is testing]]
             [web-watchdog.core :as core]
             [web-watchdog.persistence :as persistence]
@@ -48,6 +49,12 @@
   (-> site
       (assoc-in [:state :last-check-time] 0)
       (assoc-in [:state :next-check-time] 1)))
+
+(defn http-put-json [path port data]
+  (http/put (str "http://localhost:" port path)
+            {:body (cheshire/encode data)
+             :headers {:content-type "application/json"}
+             :throw-exceptions false}))
 
 (defn find-free-port []
   (with-open [socket (ServerSocket. 0)]
@@ -110,6 +117,35 @@
           (swap! app-state-atom update-in [:sites 0] update-site-with-successful-download-result "new content")
           ;; Verify that email an was sent.
           (assert-emails-sent-for-sites @email-history-atom [initial-site]))))))
+
+(deftest add-site-integration-test
+  (let [initial-app-state default-state
+        server-port (find-free-port)
+        test-system-cfg (-> system/system-cfg
+                            (test-utils/with-in-memory-app-state initial-app-state)
+                            test-utils/with-fake-downloader
+                            (assoc-in [:web-watchdog.web/server :port] server-port))]
+    (testing "invalid request, fails and no change"
+      (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server]]
+        (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)]
+          (let [app-state-before @app-state-atom
+                req {}
+                resp (http-put-json "/sites" server-port req)
+                app-state-after @app-state-atom]
+            (is (= 400 (:status resp)))
+            (is (= app-state-before app-state-after))))))
+    (testing "valid request, site is added"
+      (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server]]
+        (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)]
+          (let [req {:title "New site", :url "https://site.io", :email-notification {:to ["me@gmail.com"] :format "old-new"}}
+                resp (http-put-json "/sites" server-port req)
+                app-state-after @app-state-atom]
+            (is (= 200 (:status resp)))
+            (assert-app-state-conforms-to-schema app-state-after)
+            ;; Verify the site has been added.
+            (is (= 1 (-> app-state-after :sites count)))
+            (let [added-site (get-in app-state-after [:sites 0])]
+              (is (= req (select-keys added-site (keys req)))))))))))
 
 (deftest scheduled-site-check-integration-test
   (let [initial-site (-> (build-site "A") (core/update-site-with-download-result ["initial content" nil]))

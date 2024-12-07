@@ -1,13 +1,25 @@
 (ns web-watchdog.web
-  (:require [compojure.core :refer [routes GET POST]]
+  (:require [compojure.core :refer [routes GET POST PUT]]
             [compojure.route :as route]
             [integrant.core :as ig]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.util.response :as response]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
             [web-watchdog.scheduling :as scheduling]
+            [web-watchdog.core :as core]
+            [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
+
+(defn preprocess-site [site]
+  (cond-> site
+    ;; Content extractors types must be keywordized.
+    (contains? site :content-extractors)
+    (update :content-extractors
+            (fn [cexs]
+              (mapv (fn [[ce-type & ce-args]]
+                      (apply vector (keyword ce-type) ce-args))
+                    cexs)))))
 
 (defn build-routes [app-state]
   (routes
@@ -18,6 +30,19 @@
    (GET "/rest/current-state" []
      (response/response @app-state))
    ; REST actions on sites
+   (PUT "/sites" req
+     (let [site-req (-> req :body preprocess-site)]
+       (utils/log (str "Processing request to create site: " site-req))
+       (try
+         (swap! app-state (fn [cur-state]
+                            (let [new-state (core/add-site cur-state site-req)]
+                              (state/validate new-state)
+                              new-state)))
+         (response/status 200)
+         (catch Exception e
+           (utils/log (str "Create site failed: " (.getMessage e)))
+           (-> (response/bad-request (.getMessage e))
+               (response/content-type "text/plain"))))))
    (POST "/sites/:site-id/refresh" [site-id]
      (let [site-exists? (scheduling/make-site-due-now! app-state site-id)]
        (response/status (if site-exists? 200 404))))
@@ -27,6 +52,7 @@
 
 (defn build-app [app-state]
   (-> (build-routes app-state)
+      (wrap-json-body {:keywords? true})
       wrap-json-response
       (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))))
 

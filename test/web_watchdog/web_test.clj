@@ -20,6 +20,10 @@
       (let [response (app (mock/request :get "/rest/current-state"))]
         (is (= 200 (:status response)))
         (is (= @app-state (cheshire/parse-string (:body response) true)))))
+    (testing "create site (invalid request)"
+      (let [request (-> (mock/request :put "/sites") (mock/json-body {}))
+            response (app request)]
+        (is (= 400 (:status response)))))
     (testing "trigger a site refresh"
       (testing "of existing site"
         (let [response (app (mock/request :post (str "/sites/" (:id site) "/refresh")))]

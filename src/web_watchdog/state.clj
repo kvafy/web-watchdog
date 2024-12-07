@@ -18,7 +18,7 @@
                                  :format "old-new"}
             :schedule   "0 0 9 * * *"
             :state      {:last-check-time  nil
-                         :next-check-time  nil
+                         :next-check-time  0
                          :content-hash     nil
                          :content-snippet  nil
                          :last-change-time nil
