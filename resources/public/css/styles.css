@@ -28,6 +28,13 @@ body {
   margin-top: 8px; margin-bottom: 8px;
 }
 
+.highlight-on-hover {
+  transition: opacity 0.35s ease-in-out;
+}
+.highlight-on-hover:hover {
+  opacity: 0.7;
+}
+
 .popover {
   max-width: 80% !important; /* Relative to the table of checked sites. */
 }

@@ -41,12 +41,24 @@
             (gstring/format "%.1f %s" value unit)
             (recur next-unit next-value next-conversions)))))))
 
+(defn dissoc-idx
+  "Removes item at the specified index from the vector."
+  [v idx]
+  (let [prefix (subvec v 0 idx)
+        suffix (subvec v (inc idx))]
+    (vec (concat prefix suffix))))
+
 (defn keyword-pprint [kw]
   (-> kw
       name
       (clojure.string/replace ":" "")
       (clojure.string/replace "-" " ")
       (clojure.string/capitalize)))
+
+(defn split-with-trailing [s re]
+  (.split s re (-> s count inc)))
+
+(defn target-value [event] (-> event .-target .-value))
 
 (defn transform-kv-pair [[k v]]
   (let [transforms {:check-interval-ms

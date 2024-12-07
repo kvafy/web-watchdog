@@ -11,9 +11,11 @@
 
 function jQuery(arg1, arg2) {}
 
-jQuery.prototype.on = function(arg1, selector, data, handler) {};
+jQuery.prototype.ajax = function(url, settings) {};
 jQuery.prototype.get = function(url, data, success) {};
 jQuery.prototype.getJSON = function(url, data, success) {};
+jQuery.prototype.on = function(arg1, selector, data, handler) {};
+jQuery.prototype.parseHTML = function(date, context, keepScripts) {};
 jQuery.prototype.post = function(url, data, success, dataType) {};
 
 var $ = jQuery;
