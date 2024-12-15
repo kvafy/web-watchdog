@@ -11,13 +11,20 @@
      [:span k] ": "
      [:span.monospace v]]))
 
-(defn request-site-create! [site]
-  (js/jQuery.ajax
-   (clj->js {:url "sites"
-             :method "PUT"
-             :data (-> site clj->js js/JSON.stringify)
-             :contentType "application/json; charset=UTF-8"
-             :success (fn [res] (prn "Create success!" res))})))
+(defn request-site-create! [site dialog-state-atom hide-dialog-fn]
+  (let [finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
+    (swap! dialog-state-atom #(-> % (assoc :loading? true) (assoc :success nil) (assoc :error nil)))
+    (js/jQuery.ajax
+     (clj->js {:url "sites"
+               :method "PUT"
+               :data (-> site clj->js js/JSON.stringify)
+               :contentType "application/json; charset=UTF-8"
+               :success (fn [res]
+                          (hide-dialog-fn)
+                          (finally-fn))
+               :error (fn [err]
+                        (swap! dialog-state-atom assoc :error (str "Site creation failed: " (.-responseText err)))
+                        (finally-fn))}))))
 
 (defn request-site-refresh! [site-id]
   (let [url (str "sites/" site-id "/refresh")
@@ -54,7 +61,7 @@
       [:div.tooltip-key "Last successful content"]
       [:div.tooltip-value [:span.monospace content-snippet]]])])
 
-(defn site [s]
+(defn site [s edit-dialog-model-atom]
   (let [fails         (-> s :state :fail-counter)
         content-hash  (-> s :state :content-hash)
         ongoing-check (-> s :state :ongoing-check)
@@ -146,60 +153,77 @@
   "`model-atom` holds the currently edited site state.
    If the model has an `:id` key, it's an 'Edit' dialog, otherwise a 'Create' dialog."
   [model-atom]
-  [:div {:id "add-or-edit-site-dialog" :class "modal fade" :tab-index "-1"}
-   [:div.modal-dialog.modal-dialog-centered
-    [:div.modal-content
-     [:div.modal-header
-      [:h1.modal-title (if (some? (:id @model-atom)) "Edit site" "Add a new site")]
-      [:button {:type "button" :class "btn-close" :data-bs-dismiss "modal"}]]
-     [:div.modal-body
-      [:form.row.g-3
-       [:div.col-12
-        [:label {:for "aoesd-title" :class "col-form-label"} "Title:"]
-        [:input {:id  "aoesd-title" :type "text" :class "form-control"
-                 :value (:title @model-atom)
-                 :on-change (fn [e] (swap! model-atom assoc :title (utils/target-value e)))}]]
-       [:div.col-12
-        [:label {:for "aoesd-url" :class "col-form-label"} "URL:"]
-        [:input {:id  "aoesd-url" :type "text" :class "form-control"
-                 :value (:url @model-atom)
-                 :on-change (fn [e] (swap! model-atom assoc :url (utils/target-value e)))}]]
-       [:div.col-12.content-extractors
-        [:label {:class "col-form-label"}
-         [:span "Content extractor chain:"]
-         [:span " "]
-         [:span {:class "bi bi-plus-circle highlight-on-hover" :title "Add content extractor"
-                 :on-click (fn [_]
-                             (swap! model-atom update :content-extractors
-                                    (fn [cexs] (conj (or cexs []) ["css" ""]))))}]]
-        (for [idx (-> @model-atom :content-extractors count range)]
-          ^{:key idx} [add-or-edit-site-dialog--content-extractor-row model-atom idx])]
-       [:div.col-12
-        [:label {:for "aoesd-emails-to" :class "col-form-label"} "Email addresses (comma-separated):"]
-        [:input {:id  "aoesd-emails-to" :type "email" :class "form-control" :placeholder "first@example.com, second@example.com"
-                 :value (->> @model-atom :email-notification :to (clojure.string/join ","))
-                 :on-change (fn [e] (let [parsed (utils/split-with-trailing (utils/target-value e) ",")]
-                                      (swap! model-atom assoc-in [:email-notification :to] parsed)))}]]
-       [:div.col-12
-        [:label {:for "aoesd-emails-format" :class "col-form-label"} "Notification format:"]
-        [:select {:id "aoesd-emails-format" :class "form-select"
-                  :value (get-in @model-atom [:email-notification :format])
-                  :on-change (fn [e] (swap! model-atom assoc-in [:email-notification :format] (utils/target-value e)))}
-         [:option {:value "old-new"} "old-new"]
-         [:option {:value "inline-diff"} "inline-diff"]]]
-       [:div.col-12
-        [:label {:for "aoesd-schedule" :class "col-form-label"} "Schedule (leave empty to use default):"]
-        [:input {:id  "aoesd-schedule" :type "text" :class "form-control" :placeholder "CRON expression (e.g. \"0 0 9 * * *\")"
-                 :value (:schedule @model-atom)
-                 :on-change (fn [e] (let [new-val (utils/target-value e)]
-                                      (if (empty? new-val)
-                                        (swap! model-atom dissoc :schedule)
-                                        (swap! model-atom assoc  :schedule new-val))))}]]]]
-     [:div.modal-footer
-      [:button {:type "button" :class "btn btn-secondary" :data-bs-dismiss "modal"} "Close"]
-      [:button {:type "button" :class "btn btn-primary"
-                :on-click #(request-site-create! @model-atom)}
-       "Save"]]]]])
+  (let [initial-state {:loading? false, :success nil, :error nil}
+        state-atom (reagent.core/atom nil)
+        hide-dialog-fn #(-> "aoesd-x-button" (js/document.getElementById) (.click))]
+    (fn [model-atom]
+      [:div {:id "add-or-edit-site-dialog" :class "modal fade" :tab-index "-1"
+             ;; A hack - the ref isn't really needed, but it's being set after component creation.
+             :ref (fn [r]
+                    (when (some? r)
+                      (.addEventListener r "show.bs.modal" #(reset! state-atom initial-state))))}
+       [:div.modal-dialog.modal-dialog-centered
+        [:div.modal-content
+         [:div.modal-header
+          [:h1.modal-title (if (some? (:id @model-atom)) "Edit site" "Add a new site")]
+          [:button {:id "aoesd-x-button" :class "btn-close" :type "button" :data-bs-dismiss "modal"}]]
+         [:div.modal-body
+          [:form.row.g-3
+           ;; Clear out any state errors on user input.
+           {:on-change (fn [_] (swap! state-atom #(-> % (assoc :success nil) (assoc :error nil))))}
+           [:div.col-12
+            [:label {:for "aoesd-title" :class "col-form-label"} "Title:"]
+            [:input {:id  "aoesd-title" :type "text" :class "form-control"
+                     :value (:title @model-atom)
+                     :on-change (fn [e] (swap! model-atom assoc :title (utils/target-value e)))}]]
+           [:div.col-12
+            [:label {:for "aoesd-url" :class "col-form-label"} "URL:"]
+            [:input {:id  "aoesd-url" :type "text" :class "form-control"
+                     :value (:url @model-atom)
+                     :on-change (fn [e] (swap! model-atom assoc :url (utils/target-value e)))}]]
+           [:div.col-12.content-extractors
+            [:label {:class "col-form-label"}
+             [:span "Content extractor chain:"]
+             [:span " "]
+             [:span {:class "bi bi-plus-circle highlight-on-hover" :title "Add content extractor"
+                     :on-click (fn [_]
+                                 (swap! model-atom update :content-extractors
+                                        (fn [cexs] (conj (or cexs []) ["css" ""]))))}]]
+            (for [idx (-> @model-atom :content-extractors count range)]
+              ^{:key idx} [add-or-edit-site-dialog--content-extractor-row model-atom idx])]
+           [:div.col-12
+            [:label {:for "aoesd-emails-to" :class "col-form-label"} "Email addresses (comma-separated):"]
+            [:input {:id  "aoesd-emails-to" :type "email" :class "form-control" :placeholder "first@example.com, second@example.com"
+                     :value (->> @model-atom :email-notification :to (clojure.string/join ","))
+                     :on-change (fn [e] (let [parsed (utils/split-with-trailing (utils/target-value e) ",")]
+                                          (swap! model-atom assoc-in [:email-notification :to] parsed)))}]]
+           [:div.col-12
+            [:label {:for "aoesd-emails-format" :class "col-form-label"} "Notification format:"]
+            [:select {:id "aoesd-emails-format" :class "form-select"
+                      :value (get-in @model-atom [:email-notification :format])
+                      :on-change (fn [e] (swap! model-atom assoc-in [:email-notification :format] (utils/target-value e)))}
+             [:option {:value "old-new"} "old-new"]
+             [:option {:value "inline-diff"} "inline-diff"]]]
+           [:div.col-12
+            [:label {:for "aoesd-schedule" :class "col-form-label"} "Schedule (leave empty to use default):"]
+            [:input {:id  "aoesd-schedule" :type "text" :class "form-control" :placeholder "CRON expression (e.g. \"0 0 9 * * *\")"
+                     :value (:schedule @model-atom)
+                     :on-change (fn [e] (let [new-val (utils/target-value e)]
+                                          (if (empty? new-val)
+                                            (swap! model-atom dissoc :schedule)
+                                            (swap! model-atom assoc  :schedule new-val))))}]]]]
+         [:div.modal-footer.d-block
+          [:div.d-flex.flex-row.justify-content-end
+           [:div.spinner-border.spinner-border-md.m-2
+            {:role "status" :style {:visibility (if (:loading? @state-atom) "visible" "hidden")}}]
+           [:button {:type "button" :class "btn btn-secondary m-1" :data-bs-dismiss "modal"} "Close"]
+           [:button {:type "button" :class "btn btn-primary m-1"
+                     :on-click #(request-site-create! @model-atom state-atom hide-dialog-fn)}
+            "Save"]]
+          (let [{:keys [success error]} @state-atom]
+            (when (some? (or success error))
+              [:div.alert {:class (str "alert " (if success "alert-success" "alert-danger"))}
+               (or success error)]))]]]])))
 
 (defn sites [add-or-edit-site-dialog-model-atom]
   [:div {:class "col-xs-12"}
@@ -217,7 +241,7 @@
       [:th]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
-       ^{:key (:id s)} [site s])]]])
+       ^{:key (:id s)} [site s add-or-edit-site-dialog-model-atom])]]])
 
 (defn content []
   (let [add-or-edit-site-dialog-model (reagent.core/atom {})]

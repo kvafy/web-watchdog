@@ -41,8 +41,7 @@
          (response/status 200)
          (catch Exception e
            (utils/log (str "Create site failed: " (.getMessage e)))
-           (-> (response/bad-request (.getMessage e))
-               (response/content-type "text/plain"))))))
+           (response/bad-request (.getMessage e))))))
    (POST "/sites/:site-id/refresh" [site-id]
      (let [site-exists? (scheduling/make-site-due-now! app-state site-id)]
        (response/status (if site-exists? 200 404))))
