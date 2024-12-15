@@ -26,6 +26,7 @@
                :contentType "application/json; charset=UTF-8"
                :success (fn [res]
                           (hide-dialog-fn)
+                          (state/poll-current-state!)
                           (finally-fn))
                :error (fn [err]
                         (swap! dialog-state-atom assoc :error (.-responseText err))
