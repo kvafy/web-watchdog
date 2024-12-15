@@ -1,7 +1,7 @@
 # web-watchdog
 
 *Web-watchdog* is a utility with a web front-end that checks configured set of
-websites (URLs in general) for changes of content and/or availability, sneding
+websites (URLs in general) for changes of content and/or availability, sending
 email notifications when the content changes or site goes down.
 
 Each website can be checked according to a custom schedule defined with a
@@ -50,11 +50,12 @@ instructions in `scripts/web-watchdog`.
 Configuration and state is contained in *state.edn* file, which is created in
 the current working directory during the first run.
 
-To register a website for watching or to modify definitions of already watched
-sites, edit the *state.edn* file. See comment in *src/web_watchdog/state.clj*
-to understand structure/format of the *state.edn* file.
+Watched websites can be added/edited through the web UI. The global app config
+(e.g. the default check schedule) can be adjusted only manually by editting the
+*state.edn* file. The application requires a restart for config changes to take
+effect.
 
-The application requires a restart for config changes to take effect.
+### Internals
 
 The `:content-extractors` field in a site defines a sequence of extractors that
 are applied to the website HTML to narrow down the checked content and can be
@@ -63,6 +64,9 @@ configured with the following entries:
 * `[:css "<selector>"]` narrows down the current content by a CSS selector.
 * `[:xpath "<selector>"]` narrows down the current content by an XPath
   selector.
+* `[:sort-elements-by-text]` takes the output of a previous CSS or XPath
+  selector (which, in general, is a sequence of DOM elements) and sorts these
+  elements by their text content.
 * `[:html->text]` extracts normalized plain text from the current HTML 
   element(s) and all their children.
 * `[:regexp "<regexp>"]` narrows down the current content to the first match
