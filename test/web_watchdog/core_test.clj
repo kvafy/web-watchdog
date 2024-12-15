@@ -55,6 +55,28 @@
       (is (= (-> default-state :sites count inc)
              (-> new-state :sites count))))))
 
+(deftest update-site-test
+  (let [site-A (build-site "Unrelated site A")
+        original-site (build-site "Test site")
+        site-B (build-site "Unrelated site B")
+        original-state (set-sites default-state [site-A original-site site-B])
+        valid-request {:id (:id original-site) :title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}]
+    (testing "unknown site, throws"
+      (let [invalid-request (assoc valid-request :id "unknown-id")]
+        (is (thrown? IllegalArgumentException (core/update-site original-state invalid-request)))))
+    (testing "known site"
+      (let [new-state (core/update-site original-state valid-request)
+            new-site (get-in new-state [:sites 1])]
+        (testing "produces valid state"
+          (assert-conforms-to-state-schema new-state))
+        (testing "changes only the targeted site"
+          ;; This also checks that no other part of the overall state isn't changed.
+          (is (= (assoc-in original-state [:sites 1] nil)
+                 (assoc-in new-state      [:sites 1] nil))))
+        (testing "propagates site properties"
+          (is (= (select-keys new-site (keys valid-request))
+                 valid-request)))))))
+
 (deftest test-site-test
   (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}
         ok-download-fn (succeeding-download "Fake site content")

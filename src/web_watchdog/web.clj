@@ -42,6 +42,18 @@
          (catch Exception e
            (utils/log (str "Create site failed: " (.getMessage e)))
            (response/bad-request (.getMessage e))))))
+   (PUT "/sites/:site-id" req
+     (let [site-req (-> req :body preprocess-site)]
+       (utils/log (str "Processing request to update site: " site-req))
+       (try
+         (swap! app-state (fn [cur-state]
+                            (let [new-state (core/update-site cur-state site-req)]
+                              (state/validate new-state)
+                              new-state)))
+         (response/status 200)
+         (catch Exception e
+           (utils/log (str "Update site failed: " (.getMessage e)))
+           (response/bad-request (.getMessage e))))))
    (POST "/sites/test" req
      (let [site-req (-> req :body preprocess-site)
            _ (utils/log (str "Processing request to test site: " site-req))

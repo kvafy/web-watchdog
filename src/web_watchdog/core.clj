@@ -5,14 +5,17 @@
   (:import [org.jsoup Jsoup]))
 
 (declare check-site)
+(declare find-site-by-id)
 
 ;; Adding a new site to state.
 
+;; Required and optional keys of a site request.
+(def site-req-required-keys #{:title :url :email-notification})
+(def site-req-optional-keys #{:content-extractors :schedule})
+(def site-req-considered-keys (clojure.set/union site-req-required-keys site-req-optional-keys))
+
 (defn create-site [site-req]
-  (let [required-keys #{:title :url :email-notification}
-        optional-keys #{:content-extractors :schedule}
-        all-copied-keys (clojure.set/union required-keys optional-keys)
-        template {:id         (str (java.util.UUID/randomUUID))
+  (let [template {:id         (str (java.util.UUID/randomUUID))
                   :state      {:last-check-time  nil
                                :next-check-time  0
                                :content-hash     nil
@@ -22,15 +25,22 @@
                                :last-error-time  nil
                                :last-error-msg   nil
                                :ongoing-check "idle"}}]
-    (when (not= (count required-keys)
-                (-> site-req (select-keys required-keys) count))
+    (when (not= (count site-req-required-keys)
+                (-> site-req (select-keys site-req-required-keys) count))
       (throw (IllegalArgumentException.
-              (format "Site is missing (one of the) required keys '%s': '%s'" required-keys site-req))))
-    (merge template (select-keys site-req all-copied-keys))))
+              (format "Site is missing (one of the) required keys '%s': '%s'" site-req-required-keys site-req))))
+    (merge template (select-keys site-req site-req-considered-keys))))
 
 (defn add-site [app-state site-req]
   (let [site (create-site site-req)]
     (update app-state :sites conj site)))
+
+(defn update-site [app-state site-req]
+  (if-let [[site-idx cur-site] (find-site-by-id app-state (:id site-req))]
+    (let [site-req (select-keys site-req site-req-considered-keys)  ;; Sanitize request.
+          new-site (merge cur-site site-req)]
+      (assoc-in app-state [:sites site-idx] new-site))
+    (throw (IllegalArgumentException. (str "Site has no ID, or the site wasn't found: " site-req)))))
 
 (defn test-site
   "Simulates the outcome of checking the requested site.

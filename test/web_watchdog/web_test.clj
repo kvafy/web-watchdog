@@ -26,6 +26,10 @@
       (let [request (-> (mock/request :put "/sites") (mock/json-body {}))
             response (app request)]
         (is (= 400 (:status response)))))
+    (testing "update site (invalid request)"
+      (let [request (-> (mock/request :put (str "/sites/" (:id site))) (mock/json-body {}))
+            response (app request)]
+        (is (= 400 (:status response)))))
     (testing "test site (invalid request)"
       (let [request (-> (mock/request :post "/sites/test") (mock/json-body {}))
             response (app request)]

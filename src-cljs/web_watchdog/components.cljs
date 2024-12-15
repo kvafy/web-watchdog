@@ -11,19 +11,24 @@
      [:span k] ": "
      [:span.monospace v]]))
 
-(defn request-site-create! [site dialog-state-atom hide-dialog-fn]
-  (let [finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
+(defn request-site-create-or-update! [site dialog-state-atom hide-dialog-fn]
+  (let [operation (if (contains? site :id) :update :create)
+        ;; When editing an existing site, we want to ignore some internal site properties.
+        keys-to-send [:id :title :url :content-extractors :email-notification :schedule]
+        finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
     (swap! dialog-state-atom #(-> % (assoc :loading? true) (assoc :success nil) (assoc :error nil)))
     (js/jQuery.ajax
-     (clj->js {:url "sites"
+     (clj->js {:url (case operation
+                      :create "sites"
+                      :update (str "sites/" (:id site)))
                :method "PUT"
-               :data (-> site clj->js js/JSON.stringify)
+               :data (-> site (select-keys keys-to-send) clj->js js/JSON.stringify)
                :contentType "application/json; charset=UTF-8"
                :success (fn [res]
                           (hide-dialog-fn)
                           (finally-fn))
                :error (fn [err]
-                        (swap! dialog-state-atom assoc :error (str "Site creation failed: " (.-responseText err)))
+                        (swap! dialog-state-atom assoc :error (.-responseText err))
                         (finally-fn))}))))
 
 (defn request-site-test! [site dialog-state-atom]
@@ -119,7 +124,12 @@
        [:ul.dropdown-menu
         [:li [:a {:class (str "dropdown-item" (if (not= ongoing-check "idle") " disabled" "")),
                   :on-click #(request-site-refresh! (:id s))}
-              "Refresh now"]]]]]]))
+              "Refresh now"]]
+        [:li [:a {:class "dropdown-item"
+                  :data-bs-toggle "modal"
+                  :data-bs-target "#add-or-edit-site-dialog"
+                  :on-click #(reset! edit-dialog-model-atom s)}
+              "Edit"]]]]]]))
 
 (defn add-site-button [dialog-model-atom]
   [:span {:class "bi bi-plus-circle highlight-on-hover"
@@ -237,7 +247,7 @@
                      :on-click #(request-site-test! @model-atom state-atom)}
             "Test"]
            [:button {:type "button" :class "btn btn-primary m-1"
-                     :on-click #(request-site-create! @model-atom state-atom hide-dialog-fn)}
+                     :on-click #(request-site-create-or-update! @model-atom state-atom hide-dialog-fn)}
             "Save"]]
           (let [{:keys [success error]} @state-atom]
             (when (some? (or success error))
