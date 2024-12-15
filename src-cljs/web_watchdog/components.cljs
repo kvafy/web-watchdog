@@ -140,11 +140,12 @@
           :data-bs-target "#add-or-edit-site-dialog"
           :on-click #(reset! dialog-model-atom {})}])
 
-(defn add-or-edit-site-dialog--content-extractor-row [model-atom idx]
+(defn add-or-edit-site-dialog--content-extractor-row [model-atom idx state-atom]
   (let [[type value] (get-in @model-atom [:content-extractors idx])]
     [:div {:class "row content-extractor"}
      [:div.col-md-3
       [:select {:class "form-select"
+                :disabled (:loading? @state-atom)
                 :value type
                 :on-change (fn [e]
                              (let [type (utils/target-value e)
@@ -163,18 +164,20 @@
                               "xpath"   "//span[@id='outer']"
                               "regexp"  "Price:\\s*(\\d+).*"
                               "Select extractor type")
+               :disabled (:loading? @state-atom)
                :value value
                :on-change (fn [e] (swap! model-atom assoc-in [:content-extractors idx 1] (utils/target-value e)))}]]
      [:div.col-md-1
       [:span {:class "bi bi-x-circle col-form-label highlight-on-hover"
               :title "Remove"
-              :on-click #(swap!
-                          model-atom
-                          (fn [model]
-                            (let [new-cexs (-> model :content-extractors (utils/dissoc-idx idx))]
-                              (if (empty? new-cexs)
-                                (dissoc model :content-extractors)
-                                (assoc  model :content-extractors new-cexs)))))}]]]))
+              :on-click #(when-not (:loading? @state-atom)
+                           (swap!
+                            model-atom
+                            (fn [model]
+                              (let [new-cexs (-> model :content-extractors (utils/dissoc-idx idx))]
+                                (if (empty? new-cexs)
+                                  (dissoc model :content-extractors)
+                                  (assoc  model :content-extractors new-cexs))))))}]]]))
 
 (defn add-or-edit-site-dialog
   "`model-atom` holds the currently edited site state.
@@ -201,11 +204,13 @@
            [:div.col-12
             [:label {:for "aoesd-title" :class "col-form-label"} "Title:"]
             [:input {:id  "aoesd-title" :type "text" :class "form-control"
+                     :disabled (:loading? @state-atom)
                      :value (:title @model-atom)
                      :on-change (fn [e] (swap! model-atom assoc :title (utils/target-value e)))}]]
            [:div.col-12
             [:label {:for "aoesd-url" :class "col-form-label"} "URL:"]
             [:input {:id  "aoesd-url" :type "text" :class "form-control"
+                     :disabled (:loading? @state-atom)
                      :value (:url @model-atom)
                      :on-change (fn [e] (swap! model-atom assoc :url (utils/target-value e)))}]]
            [:div.col-12.content-extractors
@@ -214,19 +219,22 @@
              [:span " "]
              [:span {:class "bi bi-plus-circle highlight-on-hover" :title "Add content extractor"
                      :on-click (fn [_]
-                                 (swap! model-atom update :content-extractors
-                                        (fn [cexs] (conj (or cexs []) ["css" ""]))))}]]
+                                 (when-not (:loading? @state-atom)
+                                   (swap! model-atom update :content-extractors
+                                          (fn [cexs] (conj (or cexs []) ["css" ""])))))}]]
             (for [idx (-> @model-atom :content-extractors count range)]
-              ^{:key idx} [add-or-edit-site-dialog--content-extractor-row model-atom idx])]
+              ^{:key idx} [add-or-edit-site-dialog--content-extractor-row model-atom idx state-atom])]
            [:div.col-12
             [:label {:for "aoesd-emails-to" :class "col-form-label"} "Email addresses (comma-separated):"]
             [:input {:id  "aoesd-emails-to" :type "email" :class "form-control" :placeholder "first@example.com, second@example.com"
+                     :disabled (:loading? @state-atom)
                      :value (->> @model-atom :email-notification :to (clojure.string/join ","))
                      :on-change (fn [e] (let [parsed (utils/split-with-trailing (utils/target-value e) ",")]
                                           (swap! model-atom assoc-in [:email-notification :to] parsed)))}]]
            [:div.col-12
             [:label {:for "aoesd-emails-format" :class "col-form-label"} "Notification format:"]
             [:select {:id "aoesd-emails-format" :class "form-select"
+                      :disabled (:loading? @state-atom)
                       :value (get-in @model-atom [:email-notification :format])
                       :on-change (fn [e] (swap! model-atom assoc-in [:email-notification :format] (utils/target-value e)))}
              [:option {:value "old-new"} "old-new"]
@@ -234,6 +242,7 @@
            [:div.col-12
             [:label {:for "aoesd-schedule" :class "col-form-label"} "Schedule (leave empty to use default):"]
             [:input {:id  "aoesd-schedule" :type "text" :class "form-control" :placeholder "CRON expression (e.g. \"0 0 9 * * *\")"
+                     :disabled (:loading? @state-atom)
                      :value (:schedule @model-atom)
                      :on-change (fn [e] (let [new-val (utils/target-value e)]
                                           (if (empty? new-val)
@@ -245,9 +254,11 @@
             {:role "status" :style {:visibility (if (:loading? @state-atom) "visible" "hidden")}}]
            [:button {:type "button" :class "btn btn-secondary m-1" :data-bs-dismiss "modal"} "Close"]
            [:button {:type "button" :class "btn btn-secondary m-1"
+                     :disabled (:loading? @state-atom)
                      :on-click #(request-site-test! @model-atom state-atom)}
             "Test"]
            [:button {:type "button" :class "btn btn-primary m-1"
+                     :disabled (:loading? @state-atom)
                      :on-click #(request-site-create-or-update! @model-atom state-atom hide-dialog-fn)}
             "Save"]]
           (let [{:keys [success error]} @state-atom]
