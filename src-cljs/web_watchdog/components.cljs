@@ -26,6 +26,22 @@
                         (swap! dialog-state-atom assoc :error (str "Site creation failed: " (.-responseText err)))
                         (finally-fn))}))))
 
+(defn request-site-test! [site dialog-state-atom]
+  (let [keys-for-test [:id :title :url :content-extractors :email-notification :schedule]
+        finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
+    (swap! dialog-state-atom #(-> % (assoc :loading? true) (assoc :success nil) (assoc :error nil)))
+    (js/jQuery.ajax
+     (clj->js {:url "sites/test"
+               :method "POST"
+               :data (-> site (select-keys keys-for-test) clj->js js/JSON.stringify)
+               :contentType "application/json; charset=UTF-8"
+               :success (fn [res]
+                          (swap! dialog-state-atom assoc :success res)
+                          (finally-fn))
+               :error   (fn [err]
+                          (swap! dialog-state-atom assoc :error (.-responseText err))
+                          (finally-fn))}))))
+
 (defn request-site-refresh! [site-id]
   (let [url (str "sites/" site-id "/refresh")
         data ""
@@ -217,6 +233,9 @@
            [:div.spinner-border.spinner-border-md.m-2
             {:role "status" :style {:visibility (if (:loading? @state-atom) "visible" "hidden")}}]
            [:button {:type "button" :class "btn btn-secondary m-1" :data-bs-dismiss "modal"} "Close"]
+           [:button {:type "button" :class "btn btn-secondary m-1"
+                     :on-click #(request-site-test! @model-atom state-atom)}
+            "Test"]
            [:button {:type "button" :class "btn btn-primary m-1"
                      :on-click #(request-site-create! @model-atom state-atom hide-dialog-fn)}
             "Save"]]

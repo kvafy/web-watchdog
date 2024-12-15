@@ -42,6 +42,14 @@
          (catch Exception e
            (utils/log (str "Create site failed: " (.getMessage e)))
            (response/bad-request (.getMessage e))))))
+   (POST "/sites/test" req
+     (let [site (-> req :body preprocess-site)]
+       (utils/log (str "Processing request to test site: " site))
+       ;; TODO: Implement actual site test logic.
+       (Thread/sleep 1000)
+       (if (zero? (rand-int 2))
+         (response/response "Extracted site content")
+         (response/bad-request "Download failed"))))
    (POST "/sites/:site-id/refresh" [site-id]
      (let [site-exists? (scheduling/make-site-due-now! app-state site-id)]
        (response/status (if site-exists? 200 404))))
