@@ -261,7 +261,7 @@
     (testing "site missing a required property, fails"
       (doseq [key [:title :url :email-notification]]
         (let [invalid-request (dissoc min-request key)]
-          (is (thrown? IllegalArgumentException (core/site-req->site-state invalid-request))))))
+          (is (thrown? clojure.lang.ExceptionInfo (core/site-req->site-state invalid-request))))))
     (testing "site with all possible properties, succeeds"
       (let [max-request (merge min-request {:content-extractors [[:html->text]], :schedule "<CRON>"})
             new-site (core/site-req->site-state max-request)]

@@ -124,10 +124,10 @@
                                :last-error-time  nil
                                :last-error-msg   nil
                                :ongoing-check "idle"}}]
-    (when (not= (count site-req-required-keys)
-                (-> site-req (select-keys site-req-required-keys) count))
-      (throw (IllegalArgumentException.
-              (format "Site is missing (one of the) required keys '%s': '%s'" site-req-required-keys site-req))))
+    (let [missing-keys (clojure.set/difference site-req-required-keys (set (keys site-req)))]
+      (when (not-empty missing-keys)
+        (throw (ex-info (format "Site is missing required key(s) '%s': '%s'" missing-keys site-req)
+                        {:site-req site-req, :missing-keys missing-keys}))))
     (merge template (select-keys site-req site-req-considered-keys))))
 
 (defn add-site [app-state site-req]
@@ -145,16 +145,17 @@
   "Simulates the outcome of checking the requested site.
    Returns a 2-tuple [<site-content-str>, <error-str>], where exactly one element is set."
   [site-req download-fn]
-  (try
-   (let [site (site-req->site-state site-req)
-         _ (state/validate-site site)
-         checked-site (check-site site download-fn)
-         site-content   (get-in checked-site [:state :content-snippet])
-         download-error (get-in checked-site [:state :last-error-msg])]
-     (if download-error
-       [nil (str "Download failed: " download-error)]
-       [site-content nil]))
-   (catch IllegalArgumentException e
-     ;; Only site validation currently throws.
-     ;; TODO: Refactor site validation to throw a dedicated exception.
-     [nil (str "Request is invalid: " (.getMessage e))])))
+  (let [error-stage (atom nil)]
+    (try
+      (let [_ (reset! error-stage "Request is invalid")
+            site (site-req->site-state site-req)
+            _ (state/validate-site site)
+            _ (reset! error-stage "Download failed")
+            checked-site (check-site site download-fn)
+            site-content   (get-in checked-site [:state :content-snippet])
+            download-error (get-in checked-site [:state :last-error-msg])]
+        (if download-error
+          [nil (str @error-stage ": " download-error)]
+          [site-content nil]))
+      (catch RuntimeException e
+        [nil (str @error-stage ": " (.getMessage e))]))))
