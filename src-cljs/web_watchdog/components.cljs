@@ -141,7 +141,8 @@
           :on-click #(reset! dialog-model-atom {})}])
 
 (defn add-or-edit-site-dialog--content-extractor-row [model-atom idx state-atom]
-  (let [[type value] (get-in @model-atom [:content-extractors idx])]
+  (let [arg-less-extractors #{"html->text" "sort-elements-by-text"}
+        [type value] (get-in @model-atom [:content-extractors idx])]
     [:div {:class "row content-extractor"}
      [:div.col-md-3
       [:select {:class "form-select"
@@ -149,7 +150,7 @@
                 :value type
                 :on-change (fn [e]
                              (let [type (utils/target-value e)
-                                   cex (if (= type "html->text") [type] [type ""])]
+                                   cex (if (contains? arg-less-extractors type) [type] [type ""])]
                                (swap! model-atom assoc-in [:content-extractors idx] cex)))}
        [:option {:value "css"} "CSS"]
        [:option {:value "xpath"} "XPath"]
@@ -158,7 +159,7 @@
        [:option {:value "html->text"} "html->text"]]]
      [:div.col-md-8
       [:input {:type "text" :class "form-control"
-               :style {:visibility (when (contains? #{"html->text" "sort-elements-by-text"} type) "hidden")}
+               :style {:visibility (when (contains? arg-less-extractors type) "hidden")}
                :placeholder (case type
                               "css"     "#content item:first-of-type"
                               "xpath"   "//span[@id='outer']"
