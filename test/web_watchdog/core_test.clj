@@ -1,5 +1,6 @@
 (ns web-watchdog.core-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.string]
+            [clojure.test :refer [deftest is testing]]
             [schema.core]
             [web-watchdog.core :as core]
             [web-watchdog.networking]
@@ -13,43 +14,67 @@
 (defn assert-conforms-to-state-schema [site]
   (is (not-thrown? (schema.core/validate state/AppStateSchema site))))
 
-(deftest add-site-test
+(deftest create-site-test
   (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}]
     (testing "site with required properties only, succeeds"
-      (let [new-state (core/add-site default-state min-request)]
+      (let [new-site (core/create-site min-request)]
         (testing "produces valid state"
-          (assert-conforms-to-state-schema new-state))
-        (testing "changes :sites only"
-          (is (= (dissoc default-state :sites) (dissoc new-state :sites))))
-        (testing "adds the site"
-          (is (not= (:sites default-state) (:sites new-state)))
-          (is (= (-> default-state :sites count inc)
-                 (-> new-state :sites count))))
+          (assert-conforms-to-site-schema new-site))
         (testing "propagates site properties"
-          (let [appended-site (-> new-state :sites last)]
-            (is (= (select-keys appended-site (keys min-request))
-                   min-request))))))
+          (is (= (select-keys new-site (keys min-request))
+                 min-request)))))
     (testing "valid site with an unknown property"
       (let [valid-request (assoc min-request :unknown-property "value")]
         (testing "succeeds"
-          (is (not-thrown? (core/add-site default-state valid-request)))
+          (is (not-thrown? (core/create-site valid-request)))
           (testing "unknown property dropped"
-            (let [new-state (core/add-site default-state valid-request)
-                  appended-site (-> new-state :sites last)]
-              (is (false? (contains? appended-site :unknown-property))))))))
+            (let [new-site (core/create-site valid-request)]
+              (is (false? (contains? new-site :unknown-property))))))))
     (testing "site missing a required property, fails"
       (doseq [key [:title :url :email-notification]]
         (let [invalid-request (dissoc min-request key)]
-          (is (thrown? IllegalArgumentException (core/add-site default-state invalid-request))))))
+          (is (thrown? IllegalArgumentException (core/create-site invalid-request))))))
     (testing "site with all possible properties, succeeds"
       (let [max-request (merge min-request {:content-extractors [[:html->text]], :schedule "<CRON>"})
-            new-state (core/add-site default-state max-request)]
+            new-site (core/create-site max-request)]
         (testing "produces valid state"
-          (assert-conforms-to-state-schema new-state))
+          (assert-conforms-to-site-schema new-site))
         (testing "propagates site properties"
-          (let [appended-site (-> new-state :sites last)]
-            (is (= (select-keys appended-site (keys max-request))
-                   max-request))))))))
+          (is (= (select-keys new-site (keys max-request))
+                 max-request)))))))
+
+(deftest add-site-test
+  (let [valid-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}
+        new-state (core/add-site default-state valid-request)]
+    (testing "produces valid state"
+      (assert-conforms-to-state-schema new-state))
+    (testing "changes :sites only"
+      (is (= (dissoc default-state :sites) (dissoc new-state :sites))))
+    (testing "adds the site"
+      (is (not= (:sites default-state) (:sites new-state)))
+      (is (= (-> default-state :sites count inc)
+             (-> new-state :sites count))))))
+
+(deftest test-site-test
+  (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}
+        ok-download-fn (succeeding-download "Fake site content")
+        failing-download-fn (failing-download (ex-info "Fake download error" {}))]
+    (testing "malformed site, fails"
+      (doseq [key [:title :url :email-notification]]
+        (let [invalid-request (dissoc min-request key)
+              [success error] (core/test-site invalid-request ok-download-fn)]
+          (is (nil? success))
+          (is (some? error)))))
+    (testing "well-formed site with failing download, fails"
+      (let [[success error] (core/test-site min-request failing-download-fn)]
+        (is (nil? success))
+        (is (some? error))
+        (is (clojure.string/includes? error "Fake download error"))))
+    (testing "well-formed site with succeeding download, succeeds"
+      (let [[success error] (core/test-site min-request ok-download-fn)]
+        (is (nil? error))
+        (is (some? success))
+        (is (clojure.string/includes? success "Fake site content"))))))
 
 (deftest content-extraction-test
   (let [as-elements-singleton (fn [s] (-> s (org.jsoup.Jsoup/parse) (.body) (.children)))

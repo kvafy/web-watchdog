@@ -58,6 +58,9 @@
      {:default-schedule s/Str
       (s/optional-key :timezone) s/Str}})
 
+(defn validate-site [site]
+  (s/validate SiteSchema site))
+
 (defn validate [state]
   ;; Basic schema validation.
   (s/validate AppStateSchema state)

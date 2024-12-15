@@ -1,11 +1,14 @@
 (ns web-watchdog.core
   (:require [clojure.set]
+            [web-watchdog.state :as state]
             [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
 
+(declare check-site)
+
 ;; Adding a new site to state.
 
-(defn add-site [app-state site]
+(defn create-site [site-req]
   (let [required-keys #{:title :url :email-notification}
         optional-keys #{:content-extractors :schedule}
         all-copied-keys (clojure.set/union required-keys optional-keys)
@@ -20,11 +23,32 @@
                                :last-error-msg   nil
                                :ongoing-check "idle"}}]
     (when (not= (count required-keys)
-                (-> site (select-keys required-keys) count))
+                (-> site-req (select-keys required-keys) count))
       (throw (IllegalArgumentException.
-              (format "Site '%s' is missing (one of the) required keys '%s'" site required-keys))))
-    (let [new-site (merge template (select-keys site all-copied-keys))]
-      (update app-state :sites conj new-site))))
+              (format "Site is missing (one of the) required keys '%s': '%s'" required-keys site-req))))
+    (merge template (select-keys site-req all-copied-keys))))
+
+(defn add-site [app-state site-req]
+  (let [site (create-site site-req)]
+    (update app-state :sites conj site)))
+
+(defn test-site
+  "Simulates the outcome of checking the requested site.
+   Returns a 2-tuple [<site-content-str>, <error-str>], where exactly one element is set."
+  [site-req download-fn]
+  (try
+   (let [site (create-site site-req)
+         _ (state/validate-site site)
+         checked-site (check-site site download-fn)
+         site-content   (get-in checked-site [:state :content-snippet])
+         download-error (get-in checked-site [:state :last-error-msg])]
+     (if download-error
+       [nil (str "Download failed: " download-error)]
+       [site-content nil]))
+   (catch IllegalArgumentException e
+     ;; Only site validation currently throws.
+     ;; TODO: Refactor site validation to throw a dedicated exception.
+     [nil (str "Request is invalid: " (.getMessage e))])))
 
 
 ;; Extracting content from a site.

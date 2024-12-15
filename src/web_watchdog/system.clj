@@ -21,7 +21,8 @@
    ;; Description: Web server Ring handler.
    ;; Value: Ring handler.
    :web-watchdog.web/handler
-   {:app-state (ig/ref ::app-state)}
+   {:app-state (ig/ref ::app-state),
+    :download-fn (ig/ref ::download-fn)}
 
    ;; Description: Backgronud process for checking websites according to their
    ;;              configured schedules, and immediately on demand.
