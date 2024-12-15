@@ -4,63 +4,6 @@
             [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
 
-(declare check-site)
-(declare find-site-by-id)
-
-;; Adding a new site to state.
-
-;; Required and optional keys of a site request.
-(def site-req-required-keys #{:title :url :email-notification})
-(def site-req-optional-keys #{:content-extractors :schedule})
-(def site-req-considered-keys (clojure.set/union site-req-required-keys site-req-optional-keys))
-
-(defn create-site [site-req]
-  (let [template {:id         (str (java.util.UUID/randomUUID))
-                  :state      {:last-check-time  nil
-                               :next-check-time  0
-                               :content-hash     nil
-                               :content-snippet  nil
-                               :last-change-time nil
-                               :fail-counter     0
-                               :last-error-time  nil
-                               :last-error-msg   nil
-                               :ongoing-check "idle"}}]
-    (when (not= (count site-req-required-keys)
-                (-> site-req (select-keys site-req-required-keys) count))
-      (throw (IllegalArgumentException.
-              (format "Site is missing (one of the) required keys '%s': '%s'" site-req-required-keys site-req))))
-    (merge template (select-keys site-req site-req-considered-keys))))
-
-(defn add-site [app-state site-req]
-  (let [site (create-site site-req)]
-    (update app-state :sites conj site)))
-
-(defn update-site [app-state site-req]
-  (if-let [[site-idx cur-site] (find-site-by-id app-state (:id site-req))]
-    (let [site-req (select-keys site-req site-req-considered-keys)  ;; Sanitize request.
-          new-site (merge cur-site site-req)]
-      (assoc-in app-state [:sites site-idx] new-site))
-    (throw (IllegalArgumentException. (str "Site has no ID, or the site wasn't found: " site-req)))))
-
-(defn test-site
-  "Simulates the outcome of checking the requested site.
-   Returns a 2-tuple [<site-content-str>, <error-str>], where exactly one element is set."
-  [site-req download-fn]
-  (try
-   (let [site (create-site site-req)
-         _ (state/validate-site site)
-         checked-site (check-site site download-fn)
-         site-content   (get-in checked-site [:state :content-snippet])
-         download-error (get-in checked-site [:state :last-error-msg])]
-     (if download-error
-       [nil (str "Download failed: " download-error)]
-       [site-content nil]))
-   (catch IllegalArgumentException e
-     ;; Only site validation currently throws.
-     ;; TODO: Refactor site validation to throw a dedicated exception.
-     [nil (str "Request is invalid: " (.getMessage e))])))
-
-
 ;; Extracting content from a site.
 
 (defn as-element-or-elements [x]
@@ -161,3 +104,57 @@
 (defn check-site [site download-fn]
   (let [[data ex-nfo]  (-> site :url download-fn)]
     (update-site-with-download-result site [data ex-nfo])))
+
+
+;; Handling web requests related to sites.
+
+;; Required and optional keys of a site request.
+(def site-req-required-keys #{:title :url :email-notification})
+(def site-req-optional-keys #{:content-extractors :schedule})
+(def site-req-considered-keys (clojure.set/union site-req-required-keys site-req-optional-keys))
+
+(defn site-req->site-state [site-req]
+  (let [template {:id         (str (java.util.UUID/randomUUID))
+                  :state      {:last-check-time  nil
+                               :next-check-time  0
+                               :content-hash     nil
+                               :content-snippet  nil
+                               :last-change-time nil
+                               :fail-counter     0
+                               :last-error-time  nil
+                               :last-error-msg   nil
+                               :ongoing-check "idle"}}]
+    (when (not= (count site-req-required-keys)
+                (-> site-req (select-keys site-req-required-keys) count))
+      (throw (IllegalArgumentException.
+              (format "Site is missing (one of the) required keys '%s': '%s'" site-req-required-keys site-req))))
+    (merge template (select-keys site-req site-req-considered-keys))))
+
+(defn add-site [app-state site-req]
+  (let [site (site-req->site-state site-req)]
+    (update app-state :sites conj site)))
+
+(defn update-site [app-state site-req]
+  (if-let [[site-idx cur-site] (find-site-by-id app-state (:id site-req))]
+    (let [site-req (select-keys site-req site-req-considered-keys)  ;; Sanitize request.
+          new-site (merge cur-site site-req)]
+      (assoc-in app-state [:sites site-idx] new-site))
+    (throw (IllegalArgumentException. (str "Site has no ID, or the site wasn't found: " site-req)))))
+
+(defn test-site
+  "Simulates the outcome of checking the requested site.
+   Returns a 2-tuple [<site-content-str>, <error-str>], where exactly one element is set."
+  [site-req download-fn]
+  (try
+   (let [site (site-req->site-state site-req)
+         _ (state/validate-site site)
+         checked-site (check-site site download-fn)
+         site-content   (get-in checked-site [:state :content-snippet])
+         download-error (get-in checked-site [:state :last-error-msg])]
+     (if download-error
+       [nil (str "Download failed: " download-error)]
+       [site-content nil]))
+   (catch IllegalArgumentException e
+     ;; Only site validation currently throws.
+     ;; TODO: Refactor site validation to throw a dedicated exception.
+     [nil (str "Request is invalid: " (.getMessage e))])))
