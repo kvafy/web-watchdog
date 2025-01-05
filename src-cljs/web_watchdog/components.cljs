@@ -152,6 +152,7 @@
                              (let [type (utils/target-value e)
                                    cex (if (contains? arg-less-extractors type) [type] [type ""])]
                                (swap! model-atom assoc-in [:content-extractors idx] cex)))}
+       [:option {:value "" :disabled true} "- select -"]
        [:option {:value "css"} "CSS"]
        [:option {:value "xpath"} "XPath"]
        [:option {:value "regexp"} "Regexp"]
@@ -222,7 +223,7 @@
                      :on-click (fn [_]
                                  (when-not (:loading? @state-atom)
                                    (swap! model-atom update :content-extractors
-                                          (fn [cexs] (conj (or cexs []) ["css" ""])))))}]]
+                                          (fn [cexs] (conj (or cexs []) ["" ""])))))}]]
             (for [idx (-> @model-atom :content-extractors count range)]
               ^{:key idx} [add-or-edit-site-dialog--content-extractor-row model-atom idx state-atom])]
            [:div.col-12
@@ -236,8 +237,9 @@
             [:label {:for "aoesd-emails-format" :class "col-form-label"} "Notification format:"]
             [:select {:id "aoesd-emails-format" :class "form-select"
                       :disabled (:loading? @state-atom)
-                      :value (get-in @model-atom [:email-notification :format])
+                      :value (get-in @model-atom [:email-notification :format] "")
                       :on-change (fn [e] (swap! model-atom assoc-in [:email-notification :format] (utils/target-value e)))}
+             [:option {:value "" :disabled true} "- select -"]
              [:option {:value "old-new"} "old-new"]
              [:option {:value "inline-diff"} "inline-diff"]]]
            [:div.col-12
