@@ -305,6 +305,21 @@
           (is (= (select-keys new-site (keys valid-request))
                  valid-request)))))))
 
+(deftest delete-site-test
+  (let [site-A (build-site "A")
+        site-B (build-site "B")
+        site-C (build-site "C")
+        initial-state (set-sites default-state [site-A site-B site-C])]
+    (testing "unknown site id, throws"
+      (is (thrown? IllegalArgumentException (core/delete-site initial-state "unknown-id"))))
+    (testing "known site id, deleted"
+      (let [without-A (core/delete-site initial-state (:id site-A))
+            without-B (core/delete-site initial-state (:id site-B))
+            without-C (core/delete-site initial-state (:id site-C))]
+        (is (= (:sites without-A) [site-B site-C]))
+        (is (= (:sites without-B) [site-A site-C]))
+        (is (= (:sites without-C) [site-A site-B]))))))
+
 (deftest test-site-test
   (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}
         ok-download-fn (succeeding-download "Fake site content")

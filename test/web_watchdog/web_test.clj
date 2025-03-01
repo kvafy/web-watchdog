@@ -30,6 +30,10 @@
       (let [request (-> (mock/request :put (str "/sites/" (:id site))) (mock/json-body {}))
             response (app request)]
         (is (= 400 (:status response)))))
+    (testing "delete site (invalid request)"
+      (let [request (-> (mock/request :delete "/sites/unknown-site-id"))
+            response (app request)]
+        (is (= 400 (:status response)))))
     (testing "test site (invalid request)"
       (let [request (-> (mock/request :post "/sites/test") (mock/json-body {}))
             response (app request)]
@@ -45,6 +49,25 @@
     (testing "not-found route"
       (let [response (app (mock/request :get "/invalid"))]
         (is (= 404 (:status response)))))))
+
+(deftest test-delete-site-endpoint
+  (let [site-A (build-site "A")
+        site-B (build-site "B")
+        site-C (build-site "C")
+        initial-state (set-sites state/default-state [site-A site-B site-C])
+        app-state (atom initial-state)
+        download-fn (succeeding-download "Fake site content")
+        app (build-app app-state download-fn)]
+    (testing "unknown site"
+      (let [request (-> (mock/request :delete "/sites/unknown-site-id"))
+            response (app request)]
+        (is (= 400 (:status response)))
+        (is (= initial-state @app-state))))
+    (testing "known site"
+      (let [request (-> (mock/request :delete (str "/sites/" (:id site-B))))
+            response (app request)]
+        (is (= 200 (:status response)))
+        (is (= (:sites @app-state) [site-A site-C]))))))
 
 (deftest test-test-site-endpoint
   (let [app-state (atom state/default-state)

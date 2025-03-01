@@ -141,6 +141,13 @@
       (assoc-in app-state [:sites site-idx] new-site))
     (throw (IllegalArgumentException. (str "Site has no ID, or the site wasn't found: " site-req)))))
 
+(defn delete-site [app-state site-id]
+  (let [keep-site? (fn [site] (not= site-id (:id site)))
+        new-app-state (update app-state :sites (partial filterv keep-site?))]
+    (when (= app-state new-app-state)
+      (throw (IllegalArgumentException. (format "Site with id '%s' not found." site-id))))
+    new-app-state))
+
 (defn test-site
   "Simulates the outcome of checking the requested site.
    Returns a 2-tuple [<site-content-str>, <error-str>], where exactly one element is set."

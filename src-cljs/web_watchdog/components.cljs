@@ -54,6 +54,12 @@
         on-success #(state/poll-current-state!)]
     (js/jQuery.post url data on-success)))
 
+(defn request-site-delete! [site-id]
+  (js/jQuery.ajax
+   (clj->js {:url (str "sites/" site-id)
+             :method "DELETE"
+             :success #(state/poll-current-state!)})))
+
 (defn configuration []
   [:div {:class "col-xs-12"}
    [:h1 "Global configuration"]
@@ -130,7 +136,10 @@
                   :data-bs-toggle "modal"
                   :data-bs-target "#add-or-edit-site-dialog"
                   :on-click #(reset! edit-dialog-model-atom s)}
-              "Edit"]]]]]]))
+              "Edit"]]
+        [:li [:a {:class (str "dropdown-item" (if (not= ongoing-check "idle") " disabled" ""))
+                  :on-click #(request-site-delete! (:id s))}
+              "Delete"]]]]]]))
 
 (defn add-site-button [dialog-model-atom]
   [:span {:class "bi bi-plus-circle highlight-on-hover"

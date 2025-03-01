@@ -1,5 +1,5 @@
 (ns web-watchdog.web
-  (:require [compojure.core :refer [routes GET POST PUT]]
+  (:require [compojure.core :refer [routes GET DELETE POST PUT]]
             [compojure.route :as route]
             [integrant.core :as ig]
             [ring.adapter.jetty :refer [run-jetty]]
@@ -54,6 +54,17 @@
          (catch Exception e
            (utils/log (str "Update site failed: " (.getMessage e)))
            (response/bad-request (.getMessage e))))))
+   (DELETE "/sites/:site-id" [site-id]
+     (utils/log (str "Processing request to delete site: " site-id))
+     (try
+       (swap! app-state (fn [cur-state]
+                          (let [new-state (core/delete-site cur-state site-id)]
+                            (state/validate new-state)
+                            new-state)))
+       (response/status 200)
+       (catch Exception e
+         (utils/log (str "Delete site failed: " (.getMessage e)))
+         (response/bad-request (.getMessage e)))))
    (POST "/sites/test" req
      (let [site-req (-> req :body preprocess-site)
            _ (utils/log (str "Processing request to test site: " site-req))
