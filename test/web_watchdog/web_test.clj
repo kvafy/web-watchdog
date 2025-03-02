@@ -11,7 +11,8 @@
   (let [site (build-site "A")
         app-state (atom (set-sites state/default-state [site]))
         download-fn (succeeding-download "Fake site content")
-        app (build-app app-state download-fn)]
+        sse-handler nil
+        app (build-app app-state download-fn sse-handler)]
     (testing "main route redirects to index"
       (let [response (app (mock/request :get "/"))]
         (is (= 302 (:status response)))))
@@ -57,7 +58,8 @@
         initial-state (set-sites state/default-state [site-A site-B site-C])
         app-state (atom initial-state)
         download-fn (succeeding-download "Fake site content")
-        app (build-app app-state download-fn)]
+        sse-handler nil
+        app (build-app app-state download-fn sse-handler)]
     (testing "unknown site"
       (let [request (-> (mock/request :delete "/sites/unknown-site-id"))
             response (app request)]
@@ -71,8 +73,9 @@
 
 (deftest test-test-site-endpoint
   (let [app-state (atom state/default-state)
-        app-with-ok-download (build-app app-state (succeeding-download "Fake site content"))
-        app-with-failing-download (build-app app-state (failing-download (ex-info "Download error" {})))
+        sse-handler nil
+        app-with-ok-download (build-app app-state (succeeding-download "Fake site content") sse-handler)
+        app-with-failing-download (build-app app-state (failing-download (ex-info "Download error" {})) sse-handler)
         build-request (fn [body] (-> (mock/request :post "/sites/test") (mock/json-body body)))]
     (testing "malformed site request"
       (let [request (build-request {})

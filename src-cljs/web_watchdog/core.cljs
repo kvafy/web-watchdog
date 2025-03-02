@@ -1,9 +1,7 @@
 (ns web-watchdog.core
-  (:require [clojure.core.async :as async]
-            [reagent.dom]
+  (:require [reagent.dom]
             [web-watchdog.components :as components]
-            [web-watchdog.state :as state]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.state :as state]))
 
 (defn init-reagent! []
   ; Reagent will render the 'content' component into
@@ -29,24 +27,19 @@
                         (-> (js/$ "[data-bs-toggle='popover']")
                             (.popover "hide"))))))
 
-(defn run-state-refresh-loop! []
-  ; Periodically polls for the current state.
-  ; Reagent will observe the state changes and re-render the UI accordingly.
-  (async/go-loop []
-    (let [wait-ms (if (utils/any-non-idle-site? @state/app-state) 250 (* 10 1000))
-          wait-ch (async/timeout wait-ms)
-          ;; Wait for a timeout, or skip it if state is refreshed by other means.
-          [_ ch] (async/alts! [state/on-state-poll-finished-ch wait-ch])]
-      (when (= ch wait-ch)
-        (state/poll-current-state!)))
-    (recur))
-  ;; Kick off the state polling.
-  (state/poll-current-state!))
+(defn subscribe-to-state-updates!
+  "The server provides an SSE channel via which it informs about every state change.
+   Reagent will observe the state changes and re-render the UI accordingly."
+  []
+  (let [event-source (js/EventSource. "/sse/state-changes")
+        on-event #(state/poll-current-state!)]
+    (.addEventListener event-source "connected" on-event)
+    (.addEventListener event-source "app-state-changed" on-event)))
 
 (defn on-document-ready []
   (init-reagent!)
   (init-bootstrap!)
-  (run-state-refresh-loop!))
+  (subscribe-to-state-updates!))
 
 ; JavaScript start-up actions.
 (js/$ on-document-ready) ; Equivalent of jQuery2 `$(document).on('ready', <fn>)`

@@ -50,7 +50,15 @@
           (is (true? (every? realized? [result-1 result-2])))
           (is (= 1 @result-1))
           (is (= 2 @result-2))
-          (is (= [1 2] @calls)))))))
+          (is (= [1 2] @calls)))))
+    (testing "parameterless function"
+      (reset! calls [])
+      (let [f0 (fn [] (f "called"))
+            f0-debounced (debounce f0 interval)]
+        (f0-debounced)
+        (is (= [] @calls))
+        (Thread/sleep (* 2 interval))
+        (is (= ["called"] @calls))))))
 
 (deftest memoize-with-ttl-test
   (let [counter (atom 0)

@@ -14,6 +14,7 @@
                  [clj-http "3.13.0"]
                  ; web server
                  [ring/ring-core "1.12.2"]
+                 [org.ring-clojure/ring-core-protocols "1.12.2"]
                  [ring/ring-defaults "0.5.0"]
                  [ring/ring-jetty-adapter "1.12.2"]
                  [ring/ring-json "0.5.1"]

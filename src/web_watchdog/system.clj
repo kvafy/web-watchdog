@@ -18,11 +18,23 @@
    :web-watchdog.web/server
    {:port 8080, :handler (ig/ref :web-watchdog.web/handler)}
 
-   ;; Description: Web server Ring handler.
+   ;; Description: Web server main Ring handler.
    ;; Value: Ring handler.
    :web-watchdog.web/handler
    {:app-state (ig/ref ::app-state),
-    :download-fn (ig/ref ::download-fn)}
+    :download-fn (ig/ref ::download-fn),
+    :sse-handler (ig/ref :web-watchdog.web-sse/state-change-broadcasting-handler)}
+
+   ;; Description: Ring handler observing the app state and broadcasting
+   ;;              a server-sent event (SSE) to all connected clients when
+   ;;              the app state is updated.
+   ;; Resolved value: <fn accepting a ring request, returning ring response>
+   ;; Value: {:handler <fn accepting a ring request, returning ring response>,
+   ;;         :watched-atom <app-state-atom>}
+   ;; Parents: :web-watchdog.system/app-state-observer
+   :web-watchdog.web-sse/state-change-broadcasting-handler ;; ~ ::app-state-observer
+   {:app-state (ig/ref ::app-state),
+    :debounce-ms 200}
 
    ;; Description: Backgronud process for checking websites according to their
    ;;              configured schedules, and immediately on demand.

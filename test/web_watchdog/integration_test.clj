@@ -1,13 +1,16 @@
 (ns web-watchdog.integration-test
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as http]
+            [clojure.java.io :as io]
+            [clojure.string]
             [clojure.test :refer [deftest is testing]]
             [web-watchdog.core :as core]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.state :refer [default-state] :as state]
             [web-watchdog.system :as system]
             [web-watchdog.test-utils :refer [build-site not-thrown? set-sites with-system] :as test-utils]
-            [web-watchdog.utils :as utils])
+            [web-watchdog.utils :as utils]
+            [web-watchdog.web-sse])
   (:import [java.net ServerSocket]))
 
 (def download-delay-ms 500)  ;; For actual network I/O with a real-world server.
@@ -55,6 +58,23 @@
             {:body (cheshire/encode data)
              :headers {:content-type "application/json"}
              :throw-exceptions false}))
+
+(defn http-connect-sse [url events-coll-atom]
+  (let [parse-line (fn [line]
+                     (let [m (re-matcher #"([^:]*): (.*)" (clojure.string/trim-newline line))]
+                       (when-not (.matches m)
+                         (throw (IllegalArgumentException. (format "No SSE match found for line '%s'" line))))
+                       (let [[_ k v] (re-groups m)]
+                         [(keyword k) v])))
+        input-lines (->> (http/get url {:as :stream}) :body io/reader line-seq)]
+    (future
+      (loop [event-builder {}, lines input-lines]
+        (let [line (first lines)]
+          (if (clojure.string/blank? line)
+            (do (swap! events-coll-atom conj event-builder)
+                (recur {} (rest lines)))
+            (let [[k v] (parse-line line)]
+              (recur (assoc event-builder k v) (rest lines)))))))))
 
 (defn find-free-port []
   (with-open [socket (ServerSocket. 0)]
@@ -204,3 +224,24 @@
           (assert-site-updated-with-success (get-in @app-state-atom [:sites 0]) "updated content")
           (assert-downloads-attempted-for-sites @download-arg-history-atom [initial-site])
           (assert-app-state-conforms-to-schema @app-state-atom))))))
+
+(deftest server-sent-events-integration-test
+  (let [initial-site (-> (build-site "A") (core/update-site-with-download-result ["initial content" nil]))
+        initial-app-state (-> default-state (set-sites [initial-site]))
+        server-port (find-free-port)
+        test-system-cfg (-> system/system-cfg
+                            (test-utils/with-in-memory-app-state initial-app-state)
+                            (assoc-in [:web-watchdog.web/server :port] server-port)
+                            (assoc-in [:web-watchdog.web-sse/state-change-broadcasting-handler :debounce-ms] 0))
+        sse-events-atom (atom [])]
+    (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server]]
+      (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)]
+        (http-connect-sse (str "http://localhost:" server-port "/sse/state-changes") sse-events-atom)
+        (testing "hello message received on connect"
+          (Thread/sleep settling-delay-ms)
+          (is (= [{:event "connected" :data "dummy"}] @sse-events-atom)))
+        (testing "notification received when app state changes"
+          ;; Simulate a site content change.
+          (swap! app-state-atom update-in [:sites 0] update-site-with-successful-download-result "new content")
+          (Thread/sleep settling-delay-ms)
+          (is (= [{:event "connected" :data "dummy"} {:event "app-state-changed" :data "dummy"}] @sse-events-atom)))))))

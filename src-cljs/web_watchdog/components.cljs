@@ -26,7 +26,6 @@
                :contentType "application/json; charset=UTF-8"
                :success (fn [res]
                           (hide-dialog-fn)
-                          (state/poll-current-state!)
                           (finally-fn))
                :error (fn [err]
                         (swap! dialog-state-atom assoc :error (.-responseText err))
@@ -50,15 +49,13 @@
 
 (defn request-site-refresh! [site-id]
   (let [url (str "sites/" site-id "/refresh")
-        data ""
-        on-success #(state/poll-current-state!)]
-    (js/jQuery.post url data on-success)))
+        data ""]
+    (js/jQuery.post url data)))
 
 (defn request-site-delete! [site-id]
   (js/jQuery.ajax
    (clj->js {:url (str "sites/" site-id)
-             :method "DELETE"
-             :success #(state/poll-current-state!)})))
+             :method "DELETE"})))
 
 (defn configuration []
   [:div {:class "col-xs-12"}

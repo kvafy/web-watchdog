@@ -64,7 +64,8 @@
       (recur))
     ;; Debounced decorator of `f`.
     (fn [& args]
-      (let [new-proceed-ch (async/chan)]
+      (let [new-proceed-ch (async/chan)
+            args (if (nil? args) [] args)]  ;; Sanitize - `nil` cannot be put on a channel
         (reset! proceed-ch-atom new-proceed-ch)
         (async/go (>! restart-ch :restart)
                   (<! (async/timeout interval-ms))

@@ -9,7 +9,9 @@
             [web-watchdog.scheduling :as scheduling]
             [web-watchdog.core :as core]
             [web-watchdog.state :as state]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.utils :as utils])
+  (:import (java.util.concurrent Executors)
+           (org.eclipse.jetty.util.thread QueuedThreadPool)))
 
 (defn preprocess-site [site]
   (cond-> site
@@ -21,7 +23,7 @@
                       (apply vector (keyword ce-type) ce-args))
                     cexs)))))
 
-(defn build-routes [app-state download-fn]
+(defn build-routes [app-state download-fn sse-handler]
   (routes
    ; Redirect to static html file.
    (GET "/" []
@@ -29,6 +31,9 @@
    ; AJAX polling of the current application state
    (GET "/rest/current-state" []
      (response/response @app-state))
+   ; Server-sent events notifying about app state changes
+   (GET "/sse/state-changes" []
+     sse-handler)
    ; REST actions on sites
    (PUT "/sites" req
      (let [site-req (-> req :body preprocess-site)]
@@ -79,8 +84,8 @@
    (route/files "resources")
    (route/not-found "Not Found")))
 
-(defn build-app [app-state download-fn]
-  (-> (build-routes app-state download-fn)
+(defn build-app [app-state download-fn sse-handler]
+  (-> (build-routes app-state download-fn sse-handler)
       (wrap-json-body {:keywords? true})
       wrap-json-response
       (wrap-defaults (assoc-in site-defaults [:security :anti-forgery] false))))
@@ -88,14 +93,16 @@
 
 ;; The Ring handler component representing the web app.
 
-(defmethod ig/init-key ::handler [_ {:keys [app-state download-fn]}]
-  (build-app app-state download-fn))
+(defmethod ig/init-key ::handler [_ {:keys [app-state download-fn sse-handler]}]
+  (build-app app-state download-fn sse-handler))
 
 
 ;; The Jetty web server component.
 
 (defmethod ig/init-key ::server [_ {:keys [port handler]}]
-  (let [opts {:port port, :join? false}]
+  (let [thread-pool (doto (QueuedThreadPool.)
+                          (.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor)))
+        opts {:port port, :join? false, :thread-pool thread-pool}]
     (utils/log (format "Starting Jetty web server on port %d" port))
     (run-jetty handler opts)))
 
