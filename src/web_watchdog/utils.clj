@@ -20,11 +20,14 @@
         local-arg (millis-to-local-time millis)
         same-field? (fn [^ChronoField field]
                       (= (.get local-now field) (.get local-arg field)))
-        day-fmt (case (mod (.get local-arg ChronoField/DAY_OF_MONTH) 10)
-                  1 "d'st'"
-                  2 "d'nd'"
-                  3 "d'rd'"
-                  "d'th'")
+        day (.get local-arg ChronoField/DAY_OF_MONTH)
+        day-fmt (if (contains? #{11 12 13} day)
+                  "d'th'"
+                  (case (mod day 10)
+                    1 "d'st'"
+                    2 "d'nd'"
+                    3 "d'rd'"
+                    "d'th'"))
         fmt (cond (not (same-field? ChronoField/YEAR))
                   (str "H:mm, " day-fmt " LLL u")
                   (not (same-field? ChronoField/DAY_OF_YEAR))
