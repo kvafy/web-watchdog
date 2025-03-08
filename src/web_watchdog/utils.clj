@@ -1,6 +1,7 @@
 (ns web-watchdog.utils
   (:require [clojure.core.async :as async :refer [<!, >!]])
-  (:import [java.time Instant ZoneId]
+  (:import [java.nio.charset StandardCharsets]
+           [java.time Instant ZoneId]
            [java.time.format DateTimeFormatter]
            [java.time.temporal ChronoField]))
 
@@ -39,13 +40,12 @@
 (defn md5
   "Generate a md5 checksum for the given string"
   [token]
-  (let [hash-bytes
-         (doto (java.security.MessageDigest/getInstance "MD5")
-               (.reset)
-               (.update (.getBytes token)))]
-       (.toString
-         (new java.math.BigInteger 1 (.digest hash-bytes)) ; Positive and the size of the number
-         16))) ; Use base16 i.e. hex
+  (let [hash-bytes (doto (java.security.MessageDigest/getInstance "MD5")
+                     (.reset)
+                     (.update (.getBytes token StandardCharsets/UTF_8)))]
+   (.toString
+     (new java.math.BigInteger 1 (.digest hash-bytes)) ; Positive and the size of the number
+     16))) ; Use base16 i.e. hex
 
 (defn debounce
   "Returns a new function that accepts the same parameters as `f` but is
