@@ -39,6 +39,20 @@
         (is (true? (every? realized? results)))
         (is (= #{9} (->> results (mapv deref) set)))
         (is (= [9] @calls))))
+    (testing "zero debounce interval, invocation order honored"
+      (reset! calls [])
+      (let [f-debounced (debounce f 0)
+            results (for [n (range 10)] (f-debounced n))]
+        (doall results)
+        (Thread/sleep (* 2 interval))
+        (is (true? (every? realized? results)))
+        ;; Consider sequential calls f_1, f_2, ..., f_i, ..., f_j, ..., f_n.
+        ;; Depending on how long `f` takes, call f_i may cancel call f_j, hence the f_i promise may
+        ;; contain the result of a future f_j call (results can get propagated forward, but never
+        ;; back).
+        (is (apply <= (mapv deref results)))
+        ;; The last call can never return the value from a previous call (no race condition).
+        (is (= 9 (-> results last deref)))))
     (testing "two unrelated invocations, both executed"
       (reset! calls [])
       (let [f-debounced (debounce f interval)]
