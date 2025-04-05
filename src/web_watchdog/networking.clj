@@ -1,10 +1,18 @@
 (ns web-watchdog.networking
   (:require [clj-http.client :as client]
             [clj-http.cookies]
+            [clojure.string]
             [integrant.core :as ig]
             [web-watchdog.utils :as utils]))
 
-(defn authenticate-site [url opts]
+(defn opts-for-site
+  "Hacky programmatic solution for tweaking requests (headers, cookies etc.) until not supported
+   declaratively in the config.
+   Must return (modified) `opts`."
+  [url opts]
+  (cond
+    (clojure.string/starts-with? url "https://api.tfl.gov.uk/")
+    (assoc-in opts [:headers "Accept"] "application/xml")
   )
 
 (defn download
@@ -13,14 +21,13 @@
    Returns a 2-tuple `[body ex-info]` in which exactly one item is non-nil."
   [url]
   (let [cookie-store (clj-http.cookies/cookie-store)
-        opts {:insecure? true  ;; accept self-signed SSL certs
-              :cookie-store cookie-store
-              :headers
-              ;; Avoid 403 from certain sites.
-              {"User-Agent" "Mozilla/5.0 (Windows NT 6.1;) Gecko/20100101 Firefox/13.0.1"}}]
+        default-opts {:headers
+                      ;; Avoid 403 from certain sites.
+                      {"User-Agent" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"}
+                      :cookie-store cookie-store}]
     (try
-      (authenticate-site url opts)
-      (let [ok-response (client/get url opts)]
+      (let [opts (opts-for-site url default-opts)
+            ok-response (client/get url opts)]
         [(:body ok-response) nil])
       (catch java.lang.Exception thrown
         (let [ex-nfo (if (instance? clojure.lang.ExceptionInfo thrown)
