@@ -6,26 +6,32 @@
 
 (def default-state
   {:sites [#_
-           ;; This is how a site is represented.
-           {:id         "03ce4b54-408d-4e28-898a-aa030188d6e0"
-            :title      "TfL: District line"
-            :url        "https://tfl.gov.uk/tube-dlr-overground/status/"
-            :content-extractors [[:css "#service-status-page-board"]
-                                 [:xpath "//li[@data-line-id='lul-district']"]
-                                 [:css "span.disruption-summary"]
-                                 [:html->text]]
-            :email-notification {:to ["my@email.com"]
-                                 :format "old-new"}
-            :schedule   "0 0 9 * * *"
-            :state      {:last-check-time  nil
-                         :next-check-time  0
-                         :content-hash     nil
-                         :content-snippet  nil
-                         :last-change-time nil
-                         :fail-counter     0
-                         :last-error-time  nil
-                         :last-error-msg   nil
-                         :ongoing-check "idle"}}]
+             ;; This is how a site is represented.
+             {:id         "03ce4b54-408d-4e28-898a-aa030188d6e0"
+              :title      "TfL: District line"
+              :url "https://tfl.gov.uk/tube-dlr-overground/status/"
+              :request {:method "GET"
+                        :query-params {}
+                        :form-params {}
+                        :headers {"Accept" "text/xml"}
+                        :retries 3
+                        :allow-insecure true}
+              :content-extractors [[:css "#service-status-page-board"]
+                                   [:xpath "//li[@data-line-id='lul-district']"]
+                                   [:css "span.disruption-summary"]
+                                   [:html->text]]
+              :email-notification {:to ["my@email.com"]
+                                   :format "old-new"}
+              :schedule   "0 0 9 * * *"
+              :state      {:last-check-time  nil
+                           :next-check-time  0
+                           :content-hash     nil
+                           :content-snippet  nil
+                           :last-change-time nil
+                           :fail-counter     0
+                           :last-error-time  nil
+                           :last-error-msg   nil
+                           :ongoing-check "idle"}}]
    ;; Global configuration.
    :config {:default-schedule "0 0 9 * * *"
             :timezone "Europe/London"}})
@@ -34,6 +40,12 @@
   {:id s/Str
    :title s/Str
    :url s/Str
+   (s/optional-key :request) {(s/optional-key :method)         (s/enum "GET" "POST")
+                              (s/optional-key :query-params)   {s/Str s/Str}
+                              (s/optional-key :form-params)    {s/Str s/Str}
+                              (s/optional-key :headers)        {s/Str s/Str}
+                              (s/optional-key :retries)        s/Int
+                              (s/optional-key :allow-insecure) s/Bool}
    (s/optional-key :content-extractors) [(s/conditional
                                           #(contains? #{:css :xpath :regexp} (first %))
                                           [(s/one s/Keyword "extractor type") (s/one s/Str "param")]

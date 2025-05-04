@@ -27,6 +27,49 @@
       (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :title])))
     (testing "site > missing :url, throws"
       (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :url])))
+    (testing "site > missing :request, passes"
+      (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :request])))
+    (testing "site > empty :request, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {})))
+    (testing "site > :request > valid :method values, passes"
+      (doseq [val ["GET" "POST"]]
+        (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:method val}))))
+    (testing "site > :request > invalid :method values, throws"
+      (doseq [val ["PUT" "DELETE" "get" "post"]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:method val}))))
+    (testing "site > :request > valid :query-params, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:query-params {}}))
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:query-params {"q" "search"}})))
+    (testing "site > :request > invalid :query-params, throws"
+      (doseq [invalid [:only-strings 1]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:query-params {"ok" invalid}}))
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:query-params {invalid "ok"}}))))
+    (testing "site > :request > valid :form-params, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:form-params {}}))
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:form-params {"q" "search"}})))
+    (testing "site > :request > invalid :form-params, throws"
+      (doseq [invalid [:only-strings 1]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:form-params {"ok" invalid}}))
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:form-params {invalid "ok"}}))))
+    (testing "site > :request > valid :headers, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {}}))
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {"Accept" "text/xml"}})))
+    (testing "site > :request > invalid :headers, throws"
+      (doseq [invalid [:only-strings 1]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {"ok" invalid}}))
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {invalid "ok"}}))))
+    (testing "site > :request > valid :retries, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:retries 0}))
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:retries 3})))
+    (testing "site > :request > invalid :retries, throws"
+      (doseq [invalid [:only-ints "1"]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:retries invalid}))))
+    (testing "site > :request > valid :allow-insecure, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:allow-insecure false}))
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:allow-insecure true})))
+    (testing "site > :request > invalid :allow-insecure, throws"
+      (doseq [invalid [:only-bools 1 "true"]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:allow-insecure invalid}))))
     (testing "site > missing :content-extractors, passes (by default checks whole site)"
       (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :content-extractors])))
     (testing "site > :content-extractors > :css with value, passes"

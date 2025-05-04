@@ -110,7 +110,7 @@
 
 ;; Required and optional keys of a site request.
 (def site-req-required-keys #{:title :url :email-notification})
-(def site-req-optional-keys #{:content-extractors :schedule})
+(def site-req-optional-keys #{:request :content-extractors :schedule})
 (def site-req-considered-keys (clojure.set/union site-req-required-keys site-req-optional-keys))
 
 (defn site-req->site-state [site-req]
@@ -123,7 +123,7 @@
                                :fail-counter     0
                                :last-error-time  nil
                                :last-error-msg   nil
-                               :ongoing-check "idle"}}]
+                               :ongoing-check    "idle"}}]
     (let [missing-keys (clojure.set/difference site-req-required-keys (set (keys site-req)))]
       (when (not-empty missing-keys)
         (throw (ex-info (format "Site is missing required key(s) '%s': '%s'" missing-keys site-req)

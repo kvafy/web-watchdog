@@ -263,7 +263,10 @@
         (let [invalid-request (dissoc min-request key)]
           (is (thrown? clojure.lang.ExceptionInfo (core/site-req->site-state invalid-request))))))
     (testing "site with all possible properties, succeeds"
-      (let [max-request (merge min-request {:content-extractors [[:html->text]], :schedule "<CRON>"})
+      (let [max-request (merge min-request
+                               {:request {:method "GET", :headers {"Accept" "text/xml"}, :form-params {"id" "42"}}
+                                :content-extractors [[:html->text]]
+                                :schedule "<CRON>"})
             new-site (core/site-req->site-state max-request)]
         (testing "produces valid state"
           (assert-conforms-to-site-schema new-site))
