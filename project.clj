@@ -2,6 +2,7 @@
   :description "Tool watching a set of websites for content changes and availability."
   :url "https://github.com/kvafy/web-watchdog"
   :main web-watchdog.server
+  :source-paths ["src" "src-cljc"]
   :aot [web-watchdog.server]
   :dependencies [[org.clojure/clojure "1.11.4"]
                  [integrant "0.11.0"]
@@ -23,7 +24,7 @@
             [lein-cljsbuild "1.1.8"]]
   :cljsbuild
     {:builds
-      [{:source-paths ["src-cljs"]
+      [{:source-paths ["src-cljc" "src-cljs"]
         :compiler
           {:output-to "resources/public/js/main.js"
            :optimizations :advanced

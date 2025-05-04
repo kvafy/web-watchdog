@@ -1,5 +1,6 @@
 (ns web-watchdog.components
-  (:require [clojure.string]
+  (:require [clojure.pprint :as pprint]
+            [clojure.string]
             [reagent.core]
             [reagent.dom.server]
             [web-watchdog.state :as state]
@@ -11,10 +12,14 @@
      [:span k] ": "
      [:span.monospace v]]))
 
+(defn pprint-site-request-field [v]
+  (binding [pprint/*print-right-margin* 50]
+    (with-out-str (pprint/pprint v))))
+
 (defn request-site-create-or-update! [site dialog-state-atom hide-dialog-fn]
   (let [operation (if (contains? site :id) :update :create)
         ;; When editing an existing site, we want to ignore some internal site properties.
-        keys-to-send [:id :title :url :content-extractors :email-notification :schedule]
+        keys-to-send [:id :title :url :request :content-extractors :email-notification :schedule]
         finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
     (swap! dialog-state-atom #(-> % (assoc :loading? true) (assoc :success nil) (assoc :error nil)))
     (js/jQuery.ajax
@@ -221,6 +226,14 @@
                      :disabled (:loading? @state-atom)
                      :value (:url @model-atom)
                      :on-change (fn [e] (swap! model-atom assoc :url (utils/target-value e)))}]]
+           (when-let [request-opts (:request @model-atom)]
+             [:div.col-12
+              [:label {:for "aoesd-advanced" :class "col-form-label"}
+               [:span "Advanced options:"]
+               [:span " "]
+               [:span {:class "bi bi-info-circle highlight-on-hover"
+                       :title "Read-only in the UI. Modify directly in the state file."}]]
+              [:pre.monospace {:id "aoesd-advanced" :class "form-control"} (pprint-site-request-field request-opts)]])
            [:div.col-12.content-extractors
             [:label {:class "col-form-label"}
              [:span "Content extractor chain:"]

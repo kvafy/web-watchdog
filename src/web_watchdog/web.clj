@@ -9,19 +9,25 @@
             [web-watchdog.scheduling :as scheduling]
             [web-watchdog.core :as core]
             [web-watchdog.state :as state]
+            [web-watchdog.common-utils :as c-utils]
             [web-watchdog.utils :as utils])
   (:import (java.util.concurrent Executors)
            (org.eclipse.jetty.util.thread QueuedThreadPool)))
 
-(defn preprocess-site [site]
-  (cond-> site
-    ;; Content extractors types must be keywordized.
-    (contains? site :content-extractors)
-    (update :content-extractors
+(defn keywordize-site-content-extractors [site]
+  (if (contains? site :content-extractors)
+    (update site
+            :content-extractors
             (fn [cexs]
               (mapv (fn [[ce-type & ce-args]]
                       (apply vector (keyword ce-type) ce-args))
-                    cexs)))))
+                    cexs)))
+    site))
+
+(defn preprocess-site [site]
+  (-> site
+      keywordize-site-content-extractors
+      c-utils/unkeywordize-maps-in-site-request-field))
 
 (defn build-routes [app-state download-fn sse-handler]
   (routes
