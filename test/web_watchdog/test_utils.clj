@@ -104,8 +104,8 @@
 (defmethod ig/init-key ::fake-download-fn [_ _]
   (let [mock-result (atom {:success "downloaded content"})
         arg-history (atom [])
-        f (fn [url]
-            (swap! arg-history conj url)
+        f (fn [arg]
+            (swap! arg-history conj arg)
             (let [{:keys [success failure]} @mock-result]
               (cond
                 (some? success) [success nil]

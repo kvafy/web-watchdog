@@ -102,7 +102,7 @@
       ex-nfo       (assoc-in [:state :last-error-time] now))))
 
 (defn check-site [site download-fn]
-  (let [[data ex-nfo]  (-> site :url download-fn)]
+  (let [[data ex-nfo]  (download-fn site)]
     (update-site-with-download-result site [data ex-nfo])))
 
 

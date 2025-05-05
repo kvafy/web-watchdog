@@ -3,7 +3,7 @@
 * Added a UI dialog for adding new/editing existing checked sites.
 * Each site can specify its own checking schedule using a CRON expression, instead of a global
   fixed check interval.
-* Added several new site properties: `:id`, `:schedule`, `[:state :ongoing-check]`,
+* Added several new site properties: `:id`, `:request`, `:schedule`, `[:state :ongoing-check]`,
   `[:state :next-check-time]`.
 * Introduced an explicit task scheduler for checking sites, allowing for concurrent checks and easy
   on-demand website checks. Next check of a site is primarily determined by its

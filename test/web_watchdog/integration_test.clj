@@ -25,9 +25,10 @@
 (defn assert-app-state-conforms-to-schema [app-state]
   (is (not-thrown? (state/validate app-state))))
 
-(defn assert-downloads-attempted-for-sites [url-history sites]
-  (let [expected-history (mapv :url sites)]
-    (is (= (set url-history) (set expected-history)))))
+(defn assert-downloads-attempted-for-sites [site-history expected-sites]
+  (let [actual-urls (mapv :url site-history)
+        expected-urls (mapv :url expected-sites)]
+    (is (= actual-urls expected-urls))))
 
 (defn assert-emails-sent-for-sites
   "Checks just the `:to` fields, since each test site should have a unique set of emails."

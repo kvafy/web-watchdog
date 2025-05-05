@@ -68,7 +68,7 @@
    {}
 
    ;; Description: Downloader of websites (as a component for mocking).
-   ;; Value: (fn [url] -> [[ok-body err]])
+   ;; Value: (fn [site] -> [[ok-body err]])
    ;; Parents: :web-watchdog.system/download-fn
    :web-watchdog.networking/web-downloader ;; ~::download-fn
    {:cache-ttl-ms (* 10 1000)}
