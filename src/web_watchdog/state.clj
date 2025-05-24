@@ -21,7 +21,8 @@
                                    [:css "span.disruption-summary"]
                                    [:html->text]]
               :email-notification {:to ["my@email.com"]
-                                   :format "old-new"}
+                                   :format "old-new"
+                                   :condition "(not (and site-changed? (content-matches \"^$\") (< 3600 last-check-age-secs)))"}
               :schedule   "0 0 9 * * *"
               :state      {:last-check-time  nil
                            :next-check-time  0
@@ -52,7 +53,8 @@
                                           #(contains? #{:html->text :sort-elements-by-text} (first %))
                                           [(s/one s/Keyword "extractor type")])]
    :email-notification {:to (s/conditional (every-pred vector? not-empty) [s/Str])
-                        :format (s/enum "old-new" "inline-diff")}
+                        :format (s/enum "old-new" "inline-diff")
+                        (s/optional-key :condition) s/Str}
    (s/optional-key :schedule) s/Str
    :state {:last-check-time (s/maybe s/Int)
            :next-check-time (s/maybe s/Int)

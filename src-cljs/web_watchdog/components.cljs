@@ -1,5 +1,6 @@
 (ns web-watchdog.components
-  (:require [clojure.pprint :as pprint]
+  (:require [clojure.edn :as edn]
+            [clojure.pprint :as pprint]
             [clojure.string]
             [reagent.core]
             [reagent.dom.server]
@@ -11,6 +12,10 @@
     [:div.v-margin
      [:span k] ": "
      [:span.monospace v]]))
+
+(defn pprint-site-notification-condition [c]
+  (binding [pprint/*print-right-margin* 50]
+    (with-out-str (pprint/pprint (edn/read-string c)))))
 
 (defn pprint-site-request-field [v]
   (binding [pprint/*print-right-margin* 50]
@@ -261,6 +266,14 @@
              [:option {:value "" :disabled true} "- select -"]
              [:option {:value "old-new"} "old-new"]
              [:option {:value "inline-diff"} "inline-diff"]]]
+           (when-let [notification-condition (get-in @model-atom [:email-notification :condition])]
+             [:div.col-12
+              [:label {:for "aoesd-notification-condition" :class "col-form-label"}
+               [:span "Condition:"]
+               [:span " "]
+               [:span {:class "bi bi-info-circle highlight-on-hover"
+                       :title "Read-only in the UI. Modify directly in the state file."}]]
+              [:pre.monospace {:id "aoesd-advanced" :class "form-control"} (pprint-site-notification-condition notification-condition)]])
            [:div.col-12
             [:label {:for "aoesd-schedule" :class "col-form-label"} "Schedule (leave empty to use default):"]
             [:input {:id  "aoesd-schedule" :type "text" :class "form-control" :placeholder "CRON expression (e.g. \"0 0 9 * * *\")"

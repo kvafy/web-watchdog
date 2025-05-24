@@ -106,6 +106,8 @@
       (doseq [val [:old-new :inline-diff nil "bogus"]]
         (throws-for-updated-config #(assoc-in % [:sites 0 :email-notification :format] val)))
       (throws-for-updated-config #(dissoc-nested-key % [:sites 0 :email-notification :format])))
+    (testing "site > :email-notification > valid :condition, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :email-notification :condition] "(and true true)")))
     (testing "site > missing :schedule, passes (will fall back to schedule from the global config)"
       (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :schedule])))
     (testing "site > missing :state, throws"

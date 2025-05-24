@@ -4,7 +4,7 @@
             [web-watchdog.test-utils :refer [build-site set-sites site-emails]]
             [clojure.test :refer [deftest is testing]]))
 
-(deftest notify-by-email!-test
+(deftest notify-about-site-changes!-test
   (let [sent-emails (atom #{})
         fake-sender (reify EmailSender
                       (send-email [_ to _ _]
@@ -16,12 +16,28 @@
         (setup!)
         (notify-about-site-changes! fake-sender old-state new-state)
         (is (empty? @sent-emails))))
-    (testing "mail sent if the content changes"
+    (testing "content changed"
       (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "old-hash", :last-change-time 1000}})])
             new-state (set-sites default-state [(build-site "a" {:state {:content-hash "new-hash", :last-change-time 2000}})])]
-        (setup!)
-        (notify-about-site-changes! fake-sender old-state new-state)
-        (is (= (set (site-emails "a")) @sent-emails))))
+        (testing "mail sent"
+          (setup!)
+          (notify-about-site-changes! fake-sender old-state new-state)
+          (is (= (set (site-emails "a")) @sent-emails)))
+        (testing "mail sent (condition true)"
+          (let [new-state-true-condition (assoc-in new-state [:sites 0 :email-notification :condition] "true")]
+            (setup!)
+            (notify-about-site-changes! fake-sender old-state new-state-true-condition)
+            (is (= (set (site-emails "a")) @sent-emails))))
+        (testing "mail sent (condition invalid)"
+          (let [new-state-invalid-condition (assoc-in new-state [:sites 0 :email-notification :condition] "@!xyz")]
+            (setup!)
+            (notify-about-site-changes! fake-sender old-state new-state-invalid-condition)
+            (is (= (set (site-emails "a")) @sent-emails))))
+        (testing "mail not sent (condition false)"
+          (let [new-state-false-condition (assoc-in new-state [:sites 0 :email-notification :condition] "false")]
+            (setup!)
+            (notify-about-site-changes! fake-sender old-state new-state-false-condition)
+            (is (empty? @sent-emails))))))
     (testing "mail sent if site becomes unavailable"
       (let [old-state (set-sites default-state [(build-site "a" {:state {:content-hash "constant", :last-change-time 1000}})])
             new-state (set-sites default-state [(build-site "a" {:state {:content-hash "constant" :fail-counter 1}})])]
