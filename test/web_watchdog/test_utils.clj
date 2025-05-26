@@ -1,8 +1,9 @@
 (ns web-watchdog.test-utils
   (:require [integrant.core :as ig]
+            [taoensso.timbre :as timbre]
             [web-watchdog.email]
-            [web-watchdog.state :as state]
-            [web-watchdog.utils :as utils]))
+            [web-watchdog.logging :as logging :refer [logd]]
+            [web-watchdog.state :as state]))
 
 ;; Generic helpers.
 
@@ -22,6 +23,13 @@
          (->> ~orig-path slurp (spit ~tmp-path-binding-var))
          ~@body)
        (finally (.delete tmp-file#)))))
+
+(defn setup-test-logging! []
+  (timbre/merge-config!
+   {:min-level `[[#{"org.eclipse.jetty.*"} :warn]
+                 [#{"*"} :debug]]
+    ;; Don't print stack-traces
+    :output-opts {:error-fn nil}}))
 
 
 ;; Constructing sites and app state.
@@ -131,7 +139,7 @@
         impl (reify web-watchdog.email/EmailSender
                (send-email [_ to subject body-html]
                  (when verbose
-                   (utils/log (format "Fake-sending email titled '%s' to [%s]" subject to)))
+                   (logd "Fake-sending email titled '%s' to '%s'." subject to))
                  (swap! history conj {:to to, :subject subject, :body-html body-html})))]
     {:impl impl, :history history}))
 

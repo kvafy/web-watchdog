@@ -6,6 +6,7 @@
             [postal.core]
             [web-watchdog.conditions :as conditions]
             [web-watchdog.core :as core]
+            [web-watchdog.logging :as logging :refer [logd logw]]
             [web-watchdog.utils :as utils]))
 
 ;; Generating diff emails.
@@ -119,8 +120,7 @@
     (try
       (conditions/eval-expr condition [old-site new-site])
       (catch Exception e
-        (utils/log (format "Warning: Exception while evaluating condition '%s' of site '%s': %s"
-                           condition (:title new-site) (ex-message e)))
+        (logw e "Exception while evaluating condition '%s' of site '%s'." condition (:title new-site))
         ;; On failure, err on the side of sending a change notification.
         true))
     ;; No condition is trivially satisfied.
@@ -139,9 +139,9 @@
   (dorun
    (map (fn [[old-site new-site]]
           (when-let [change-type (core/site-change-type old-site new-site)]
-            (utils/log (format "Change of type %s detected at '%s'" change-type (:title new-site)))
+            (logd "Change of type %s detected at '%s'" change-type (:title new-site))
             (if-not (site-condition-satisfied old-site new-site)
-              (utils/log (format "Skipping email notification for '%s' due to its condition" (:title new-site)))
+              (logd "Skipping email notification for '%s' due to its condition" (:title new-site))
               (notify-site-changed! sender-impl old-site new-site change-type))))
          ; filter out change of type "site added/removed from watched sites list"
         (core/common-sites old-state new-state))))

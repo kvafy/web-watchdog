@@ -5,10 +5,6 @@
            [java.time.format DateTimeFormatter]
            [java.time.temporal ChronoField]))
 
-(defn log [msg]
-  (printf "[%s] %s\n" (java.util.Date.) msg)
-  (flush))
-
 (defn now-ms []
   (System/currentTimeMillis))
 

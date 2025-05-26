@@ -1,6 +1,7 @@
 (ns web-watchdog.state
   (:require [integrant.core :as ig]
             [schema.core :as s]
+            [web-watchdog.logging :as logging :refer [logi logw]]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.utils :as utils]))
 
@@ -105,26 +106,26 @@
   (let [state (let [loaded-state (persistence/load-state file-path)]
                 (cond
                   (some? loaded-state)
-                  (do (utils/log (format "Successfully loaded state from file '%s'." file-path))
+                  (do (logi "Successfully loaded state from file '%s'." file-path)
                       loaded-state)
                   fail-if-not-found?
                   (throw (IllegalStateException. (format "State file '%s' not found." file-path)))
                   :else
-                  (do (utils/log (format "Failed to load state from file '%s', using empty state." file-path))
+                  (do (logw "Failed to load state from file '%s', using empty state." file-path)
                       default-state)))
         _  (when validate?
-             (utils/log "Validating the initial app state.")
+             (logi "Validating the initial app state.")
              (validate state))
         state-sanitized (if sanitize?
-                          (do (utils/log "Sanitizing the initial app state.")
+                          (do (logi "Sanitizing the initial app state.")
                               (let [sanitized-state (sanitize-initial-state state)]
                                 (when (not= state sanitized-state)
-                                  (utils/log "State sanitization did fix some issues."))
+                                  (logw "State sanitization did fix some issues.\n\nLoaded state: %s\n\nFixed state: %s" state sanitized-state))
                                 sanitized-state))
                           state)
         state-atom (atom state-sanitized)]
     (when save-on-change?
-      (utils/log (format "State changes will be saved to the config file '%s'." file-path))
+      (logi "State changes will be saved to the config file '%s'." file-path)
       (let [save-state!-debounced (utils/debounce #'persistence/save-state! save-debounce-ms)]
         (add-watch state-atom
                    ::file-based-app-state--state-persister

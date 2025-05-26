@@ -6,11 +6,11 @@
             [ring.util.response :as response]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.json :refer [wrap-json-body wrap-json-response]]
-            [web-watchdog.scheduling :as scheduling]
             [web-watchdog.core :as core]
+            [web-watchdog.logging :as logging :refer [logd logi logw]]
+            [web-watchdog.scheduling :as scheduling]
             [web-watchdog.state :as state]
-            [web-watchdog.common-utils :as c-utils]
-            [web-watchdog.utils :as utils])
+            [web-watchdog.common-utils :as c-utils])
   (:import (java.util.concurrent Executors)
            (org.eclipse.jetty.util.thread QueuedThreadPool)))
 
@@ -43,7 +43,7 @@
    ; REST actions on sites
    (PUT "/sites" req
      (let [site-req (-> req :body preprocess-site)]
-       (utils/log (str "Processing request to create site: " site-req))
+       (logd "Processing request to create site: %s" site-req)
        (try
          (swap! app-state (fn [cur-state]
                             (let [new-state (core/add-site cur-state site-req)]
@@ -51,11 +51,11 @@
                               new-state)))
          (response/status 200)
          (catch Exception e
-           (utils/log (str "Create site failed: " (.getMessage e)))
+           (logw e "Create site failed, request: %s" site-req)
            (response/bad-request (.getMessage e))))))
    (PUT "/sites/:site-id" req
      (let [site-req (-> req :body preprocess-site)]
-       (utils/log (str "Processing request to update site: " site-req))
+       (logd "Processing request to update site: %s" site-req)
        (try
          (swap! app-state (fn [cur-state]
                             (let [new-state (core/update-site cur-state site-req)]
@@ -63,10 +63,10 @@
                               new-state)))
          (response/status 200)
          (catch Exception e
-           (utils/log (str "Update site failed: " (.getMessage e)))
+           (logw e "Update site failed, request: %s" site-req)
            (response/bad-request (.getMessage e))))))
    (DELETE "/sites/:site-id" [site-id]
-     (utils/log (str "Processing request to delete site: " site-id))
+     (logd "Processing request to delete site: %s" site-id)
      (try
        (swap! app-state (fn [cur-state]
                           (let [new-state (core/delete-site cur-state site-id)]
@@ -74,11 +74,11 @@
                             new-state)))
        (response/status 200)
        (catch Exception e
-         (utils/log (str "Delete site failed: " (.getMessage e)))
+         (logw e "Delete site failed, request: %s" site-id)
          (response/bad-request (.getMessage e)))))
    (POST "/sites/test" req
      (let [site-req (-> req :body preprocess-site)
-           _ (utils/log (str "Processing request to test site: " site-req))
+           _ (logd "Processing request to test site: %s" site-req)
            [site-content error] (core/test-site site-req download-fn)]
        (if site-content
          (response/response (str "Extracted content: " site-content))
@@ -109,9 +109,9 @@
   (let [thread-pool (doto (QueuedThreadPool.)
                           (.setVirtualThreadsExecutor (Executors/newVirtualThreadPerTaskExecutor)))
         opts {:port port, :join? false, :thread-pool thread-pool}]
-    (utils/log (format "Starting Jetty web server on port %d" port))
+    (logi "Starting Jetty web server on port %d" port)
     (run-jetty handler opts)))
 
 (defmethod ig/halt-key! ::server [_ server]
-  (utils/log "Stopping Jetty web server")
+  (logi "Stopping Jetty web server")
   (.stop server))

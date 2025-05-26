@@ -1,6 +1,8 @@
 (ns web-watchdog.repl
-  (:require [integrant.core :as ig]
+  (:require [clojure.set :as set]
+            [integrant.core :as ig]
             [web-watchdog.core :as core]
+            [web-watchdog.logging :as logging]
             [web-watchdog.networking :as networking]
             [web-watchdog.persistence :as persistence]
             [web-watchdog.scheduling :as scheduling]
@@ -17,6 +19,7 @@
 (defn reloaded-start [system-cfg]
   (when (some? repl-system)
     (throw (IllegalStateException. "A system already appears to be running.")))
+  (logging/setup-logging!)
   (alter-var-root #'repl-system
                   (fn [_]
                     (ig/load-namespaces system-cfg)

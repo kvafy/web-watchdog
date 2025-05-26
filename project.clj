@@ -13,6 +13,9 @@
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
                  [clj-http "3.13.0"]
+                 [com.taoensso/timbre "6.7.0"]
+                 [com.taoensso/timbre-slf4j "6.7.0"]
+                 [org.slf4j/slf4j-api "2.0.17"]
                  ; web server
                  [ring/ring-core "1.12.2"]
                  [org.ring-clojure/ring-core-protocols "1.12.2"]

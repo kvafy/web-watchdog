@@ -2,6 +2,7 @@
   (:require [clojure.core.async :as async :refer [<!, >!]]
             [integrant.core :as ig]
             [web-watchdog.core :as core]
+            [web-watchdog.logging :as logging :refer [logd logi]]
             [web-watchdog.utils :as utils])
   (:import [java.time Instant ZonedDateTime ZoneId]
            [java.util.concurrent Executors ExecutorService]
@@ -101,9 +102,9 @@
   "Makes the site immediately due for a check.
    Returns true if the `site-id` exists, false otherwise."
   [app-state-atom site-id]
-  (if-let [[site-idx _] (core/find-site-by-id @app-state-atom site-id)]
+  (if-let [[site-idx site] (core/find-site-by-id @app-state-atom site-id)]
     (do
-      (utils/log (format "Making site '%s' due now" site-id))
+      (logi "Making site '%s' due now." (:title site))
       (swap! app-state-atom assoc-in [:sites site-idx :state :next-check-time] (utils/now-ms))
       true)
     false))
@@ -120,15 +121,15 @@
     ;; via the `interrupt-ch`.
     (async/go-loop []
       (let [next-check-time (min-next-check-time @app-state)
-            _ (when (some? next-check-time) (utils/log (format "Next scheduled check is at %s (excluding sites with an ongoing check)."
-                                                               (utils/millis-to-local-time next-check-time))))
+            _ (when (some? next-check-time) (logd "Next scheduled check is at %s (excluding sites with an ongoing check)."
+                                                  (utils/millis-to-local-time next-check-time)))
             chans (cond-> []
                     true (conj interrupt-ch)
                     (some? next-check-time) (conj (timeout-at next-check-time :scheduled-run)))
             [event _] (async/alts! chans :priotity true)]
-        (utils/log (format "Site checker woke up with '%s' event." event))
+        (logd "Site checker woke up with '%s' event." event)
         (if (= event :stop)
-          (utils/log "Site checker stopped.")
+          (logi "Site checker stopped.")
           (do
             (doseq [site-to-check (due-idle-sites @app-state)]
               (let [[site-idx _] (core/find-site-by-id @app-state (:id site-to-check))
@@ -142,7 +143,7 @@
                   (<! (run-async-on-threadpool
                        blocking-threadpool
                        (fn []
-                         (utils/log (format "Checking site '%s' ..." (:title site-to-check)))
+                         (logd "Checking site '%s' ..." (:title site-to-check))
                          (set-site-state-prop! :ongoing-check "in-progress")
                          (swap! app-state update-in [:sites site-idx] #(core/check-site % download-fn))
                          (let [updated-site (get-in @app-state [:sites site-idx])

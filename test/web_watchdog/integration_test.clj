@@ -82,6 +82,11 @@
     (.getLocalPort socket)))
 
 
+;; Environment prep.
+
+(test-utils/setup-test-logging!)
+
+
 ;; Actual tests.
 
 (deftest validate-checked-in-system-configs

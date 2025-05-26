@@ -3,6 +3,7 @@
             [clj-http.cookies]
             [clojure.string]
             [integrant.core :as ig]
+            [web-watchdog.logging :as logging :refer [logd logw]]
             [web-watchdog.utils :as utils]))
 
 (def default-user-agent
@@ -26,8 +27,7 @@
                             (fn [ex try-count _http-context]
                               (let [retry? (<= try-count retries)]
                                 (when retry?
-                                  (utils/log (format "Retrying download of site '%s', failed due to: %s"
-                                                     (:url site) (ex-message ex))))
+                                  (logd "Retrying download of site '%s', failed due to: %s" (:url site) (ex-message ex)))
                                 retry?)))
                      allow-insecure
                      (assoc :insecure? true))]
@@ -46,7 +46,7 @@
       (let [ex-nfo (if (instance? clojure.lang.ExceptionInfo thrown)
                      thrown
                      (ex-info (. thrown getMessage) (Throwable->map thrown)))]
-        (utils/log (format "Failed to download [%s] due to: %s" url (ex-message ex-nfo)))
+        (logw ex-nfo "Failed to download '%s'." url)
         [nil ex-nfo]))))
 
 ;; The downloader function component.

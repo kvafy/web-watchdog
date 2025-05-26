@@ -46,7 +46,7 @@ case "$1" in
   start)
     echo "Starting Service"
     LATEST_JAR=$(ls *.jar | tail -n1)
-    ${RUN_AS_USER} java -jar "${LATEST_JAR}" >> web-watchdog.log 2>&1 &
+    ${RUN_AS_USER} java -jar "${LATEST_JAR}" &
     PID=$!
     ${RUN_AS_USER} echo "$!" > "${PID_FILE}"
     ;;
