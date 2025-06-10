@@ -1,4 +1,4 @@
-(defproject web-watchdog "0.3.0-SNAPSHOT"
+(defproject web-watchdog "0.3.1"
   :description "Tool watching a set of websites for content changes and availability."
   :url "https://github.com/kvafy/web-watchdog"
   :main web-watchdog.server

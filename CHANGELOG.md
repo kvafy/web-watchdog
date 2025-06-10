@@ -1,4 +1,16 @@
-## 0.3.0 (WIP)
+## 0.3.1
+
+* Added an optional `[:request :url]` property. If present, the site content is read from this URL,
+  while the top-level site `:url` property is considered a "display" URL for the user, e.g. in
+  email notifications or in the UI. Useful for sites whose content is programmatically consumed via
+  an API, while there is also a human-readable version of the same information available at another
+  URL.
+* Added a convenience CRON script under `scripts/backup-state.sh` for daily updates on the mutable
+  config/state file.
+* Favicons of the monitored websites are now displayed in the web UI.
+* Added favicon for the tool's web UI.
+
+## 0.3.0
 
 * Added a UI dialog for adding new/editing existing checked sites.
 * Each site can specify its own checking schedule using a CRON expression, instead of a global
