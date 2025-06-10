@@ -74,6 +74,16 @@
     (for [kv (-> @state/app-state :config)]
       ^{:key (first kv)} [kv-pair kv])]])
 
+(defn favicon-for-url [url]
+  (let [origin-url (-> url (js/URL.) (.-origin))
+        favicon-url (str "https://t1.gstatic.com/faviconV2"
+                         "?client=SOCIAL"
+                         "&type=FAVICON"
+                         "&fallback_opts=TYPE,SIZE,URL"
+                         "&size=24"
+                         "&url=" origin-url)]
+    [:img {:src favicon-url}]))
+
 (defn site-tooltip [s]
   [:div
    [:div.tooltip-section
@@ -124,6 +134,7 @@
                        ; Works together with `.popover {max-width: ...}` CSS.
                        :data-container   "#sites-table"}]
     [:tr {:class (:tr-class status)}
+     [:td popover-props [favicon-for-url (:url s)]]
      [:td popover-props
       [:a {:class "link-light" :href (:url s), :target "_blank"} (:title s)]]
      [:td popover-props (utils/utc->date-str (-> s :state :last-check-time))]
@@ -309,12 +320,13 @@
    [:table#sites-table {:class "table table-hover table-striped"}
     [:thead
      [:tr
+      [:th #_"favicon"]
       [:th "Name"]
       [:th "Last Check"]
       [:th "Last Change"]
       [:th "Last Error"]
       [:th "Status"]
-      [:th]]]
+      [:th #_"drop-down menu"]]]
     [:tbody
      (for [s (-> @state/app-state :sites)]
        ^{:key (:id s)} [site s add-or-edit-site-dialog-model-atom])]]])
