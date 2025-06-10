@@ -42,7 +42,7 @@
                         (finally-fn))}))))
 
 (defn request-site-test! [site dialog-state-atom]
-  (let [keys-for-test [:id :title :url :content-extractors :email-notification :schedule]
+  (let [keys-for-test [:id :title :url :request :content-extractors :email-notification :schedule]
         finally-fn (fn [] (swap! dialog-state-atom assoc :loading? false))]
     (swap! dialog-state-atom #(-> % (assoc :loading? true) (assoc :success nil) (assoc :error nil)))
     (js/jQuery.ajax
