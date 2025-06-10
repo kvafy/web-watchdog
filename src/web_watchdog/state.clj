@@ -8,10 +8,19 @@
 (def default-state
   {:sites [#_
              ;; This is how a site is represented.
+             ;; Note that a `:url` attribute is present twice:
+             ;;     1) On the top level (mandatory).
+             ;;     2) Inside the `:request` map (optional).
+             ;;     If both are present, the one inside `:request` is used to fetch the actual site data,
+             ;;     while the top-level url is used for everyhing else (e.g. the site link in notifications,
+             ;;     or in the web UI). This is useful if the site is read through an API, but there is still
+             ;;     a human-readable version of the same information.
+             ;;
              {:id         "03ce4b54-408d-4e28-898a-aa030188d6e0"
               :title      "TfL: District line"
               :url "https://tfl.gov.uk/tube-dlr-overground/status/"
-              :request {:method "GET"
+              :request {:url "https://api.tfl.gov.uk/Line/district/Disruption"
+                        :method "GET"
                         :query-params {}
                         :form-params {}
                         :headers {"Accept" "text/xml"}
@@ -42,7 +51,8 @@
   {:id s/Str
    :title s/Str
    :url s/Str
-   (s/optional-key :request) {(s/optional-key :method)         (s/enum "GET" "POST")
+   (s/optional-key :request) {(s/optional-key :url)            s/Str
+                              (s/optional-key :method)         (s/enum "GET" "POST")
                               (s/optional-key :query-params)   {s/Str s/Str}
                               (s/optional-key :form-params)    {s/Str s/Str}
                               (s/optional-key :headers)        {s/Str s/Str}

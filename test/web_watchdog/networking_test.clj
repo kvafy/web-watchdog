@@ -7,8 +7,12 @@
 (deftest site->clj-http-opts-test
   (let [min-site (build-site "a")
         min-site-req (networking/site->clj-http-opts min-site)]
-    (testing "url"
+    (testing "url from the site properties"
       (is (= (:url min-site) (:url min-site-req))))
+    (testing "url in request opts takes priority"
+      (let [site (build-site "a" {:request {:url "url-override"}})
+            req (networking/site->clj-http-opts site)]
+        (is (= (:url req) "url-override"))))
     (testing "http method"
       (testing "defaults to GET"
         (is (nil? (get-in min-site [:request :method])))  ;; sanity-check

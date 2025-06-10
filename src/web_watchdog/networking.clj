@@ -10,8 +10,8 @@
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
 
 (defn site->clj-http-opts [site]
-  (let [{:keys [method headers query-params form-params retries allow-insecure]} (:request site)
-        base-opts {:url (:url site)
+  (let [{:keys [method headers query-params form-params retries allow-insecure] :as request} (:request site)
+        base-opts {:url (or (:url request) (:url site))
                    :method (-> method (or "GET") clojure.string/lower-case keyword)
                    :headers {"User-Agent" default-user-agent}
                    :cookie-store (clj-http.cookies/cookie-store)}
@@ -27,7 +27,7 @@
                             (fn [ex try-count _http-context]
                               (let [retry? (<= try-count retries)]
                                 (when retry?
-                                  (logd "Retrying download of site '%s', failed due to: %s" (:url site) (ex-message ex)))
+                                  (logd "Retrying download of site '%s', failed due to: %s" (:title site) (ex-message ex)))
                                 retry?)))
                      allow-insecure
                      (assoc :insecure? true))]

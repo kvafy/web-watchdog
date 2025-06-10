@@ -31,6 +31,8 @@
       (passes-for-updated-config #(dissoc-nested-key % [:sites 0 :request])))
     (testing "site > empty :request, passes"
       (passes-for-updated-config #(assoc-in % [:sites 0 :request] {})))
+    (testing "site > :request > valid :url values, passes"
+      (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:url "https://api.service.com"})))
     (testing "site > :request > valid :method values, passes"
       (doseq [val ["GET" "POST"]]
         (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:method val}))))
