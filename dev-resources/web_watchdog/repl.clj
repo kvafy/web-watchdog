@@ -83,7 +83,8 @@
                               ;; Handles correct both top-level and nested properties.
                               (merge-with merge site (merge-val-fn site)))))]
     (-> (persistence/load-state state-file)
-        (update-in [:sites] #(mapv backfill-site %))
+        ;(update-in [:sites] #(mapv backfill-site %))
+        sanitize-state-key-order
         (persistence/save-state! state-file)))
 
 
@@ -107,5 +108,31 @@
     [:sort-elements-by-text]
     [:html->text]])
 
-  nil
-  )
+  ,)
+
+
+;; Functions for sanitizing key order in the state.edn file
+
+(defn sort-map [m key-order]
+  (let [m-keys (set (keys m))
+        sorted-keys (filterv m-keys key-order)
+        other-keys (set/difference m-keys (set sorted-keys))]
+    (reduce
+     (fn [acc k] (assoc acc k (get m k)))
+     {}
+     (concat sorted-keys other-keys))))
+
+(defn sanitize-site-state-key-order [site-state]
+  (let [key-order [:last-check-time :next-check-time
+                   :content-hash :content-snippet :last-change-time
+                   :fail-counter :last-error-time :last-error-msg :ongoing-check]]
+    (sort-map site-state key-order)))
+
+(defn sanitize-site-key-order [site]
+  (let [key-order [:id :title :url :request :content-extractors :email-notification :state]]
+    (-> site
+        (sort-map key-order)
+        (update :state sanitize-site-state-key-order))))
+
+(defn sanitize-state-key-order [app-state]
+  (update app-state :sites #(mapv sanitize-site-key-order %)))
