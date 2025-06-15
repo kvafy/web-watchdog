@@ -153,6 +153,11 @@
         [:li [:a {:class "dropdown-item"
                   :data-bs-toggle "modal"
                   :data-bs-target "#add-or-edit-site-dialog"
+                  :on-click #(reset! edit-dialog-model-atom (dissoc s :id))}
+              "Use as template"]]
+        [:li [:a {:class "dropdown-item"
+                  :data-bs-toggle "modal"
+                  :data-bs-target "#add-or-edit-site-dialog"
                   :on-click #(reset! edit-dialog-model-atom s)}
               "Edit"]]
         [:li [:a {:class (str "dropdown-item" (if (not= ongoing-check "idle") " disabled" ""))

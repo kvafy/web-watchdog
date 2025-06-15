@@ -1,3 +1,8 @@
+## 0.3.2
+
+* Added UI action "Use as template" to trigger a site creation dialog pre-populated with properties
+  of the given existing site.
+
 ## 0.3.1
 
 * Added an optional `[:request :url]` property. If present, the site content is read from this URL,
