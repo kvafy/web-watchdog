@@ -13,7 +13,7 @@
             [web-watchdog.web-sse])
   (:import [java.net ServerSocket]))
 
-(def download-delay-ms 500)  ;; For actual network I/O with a real-world server.
+(def download-delay-ms 1000) ;; For actual network I/O with a real-world server.
 (def settling-delay-ms 50)   ;; To allow for async processes to finish.
 
 ;; Helper functions.
@@ -105,7 +105,7 @@
                               ;; Read app state from a test file.
                               (assoc-in [:web-watchdog.state/file-based-app-state :file-path] tmp-state-file)
                               (assoc-in [:web-watchdog.state/file-based-app-state :fail-if-not-found?] true)
-                              (assoc-in [:web-watchdog.state/file-based-app-state :save-debounce-ms] 0)
+                              (assoc-in [:web-watchdog.state/file-based-app-state :save-debounce-ms] 5)
                               ;; Dynamically pick a port that is not used.
                               (assoc-in [:web-watchdog.web/server :port] (find-free-port))
                               test-utils/with-fake-email-sender)]
