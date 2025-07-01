@@ -281,6 +281,7 @@
                       :on-change (fn [e] (swap! model-atom assoc-in [:email-notification :format] (utils/target-value e)))}
              [:option {:value "" :disabled true} "- select -"]
              [:option {:value "old-new"} "old-new"]
+             [:option {:value "new-only"} "new-only"]
              [:option {:value "inline-diff"} "inline-diff"]]]
            (when-let [notification-condition (get-in @model-atom [:email-notification :condition])]
              [:div.col-12

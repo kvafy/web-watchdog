@@ -47,10 +47,13 @@
          "  </style>"
          "</head>"
          "<body>"
-         (format "<p>There seems to be something new on <a href='%s'>%s</a>.</p>"
+         (format "<p>The content at <a href='%s'>%s</a> has changed.</p>"
                  (:url new-site)
                  (-> new-site :title escape-html))
          (case fmt
+           "new-only"
+           (format "<p>New content: <span class='content'>%s</span></p>"
+                   (-> new-site :state :content-snippet escape-html))
            "old-new"
            (str
             (format "<p>Previous content (from %s): <span class='content'>%s</span></p>"
@@ -68,11 +71,10 @@
                                            "")]
                                 (str "<span " attr "'>" (-> diff ::pd/text escape-html) "</span>")))]
              (as-> (pd/diff old-content new-content ::pd/cleanup ::pd/cleanup-semantic) $
-                   (trim-diffs 50 $)
-                   (mapv diff->html $)
-                   (clojure.string/join "\n" $)
-                   (str "<span class='content'>" $ "</span>")))
-           (str "<p>Error: Unknown notification format: " (escape-html fmt) "</p>"))
+               (trim-diffs 50 $)
+               (mapv diff->html $)
+               (clojure.string/join "\n" $)
+               (str "<span class='content'>" $ "</span>"))))
          "</body>"
          "</html>")
     :site-failing

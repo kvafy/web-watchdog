@@ -1,8 +1,25 @@
 (ns web-watchdog.email-test
   (:require [web-watchdog.state :refer [default-state]]
-            [web-watchdog.email :refer [EmailSender notify-about-site-changes!]]
+            [web-watchdog.email :refer [EmailSender mail-body-html notify-about-site-changes!]]
             [web-watchdog.test-utils :refer [build-site set-sites site-emails]]
             [clojure.test :refer [deftest is testing]]))
+
+(deftest mail-body-html-test
+  (let [old-site (build-site "a" {:state {:content-snippet "old-content", :last-change-time 0}})
+        new-site (build-site "a" {:state {:content-snippet "new-content", :last-change-time 0}})
+        valid-change-types [:content-changed :site-failing]
+        valid-formats ["old-new" "new-only" "inline-diff"]]
+    (testing "valid params, generates body"
+      (doseq [change-type valid-change-types, fmt valid-formats]
+        (let [body (mail-body-html old-site new-site change-type fmt)]
+          (is (not-empty body)))))
+    (testing "unknown change-type, throws"
+      (let [valid-change-type (first valid-change-types)
+            valid-fmt (first valid-formats)]
+        (is (thrown? IllegalArgumentException
+                     (mail-body-html old-site new-site valid-change-type "unknown-format")))
+        (is (thrown? IllegalArgumentException
+                     (mail-body-html old-site new-site :unknown-change-type valid-fmt)))))))
 
 (deftest notify-about-site-changes!-test
   (let [sent-emails (atom #{})

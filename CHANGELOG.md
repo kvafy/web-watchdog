@@ -2,6 +2,7 @@
 
 * Added UI action "Use as template" to trigger a site creation dialog pre-populated with properties
   of the given existing site.
+* Added new email notification format `"new-only"`.
 
 ## 0.3.1
 

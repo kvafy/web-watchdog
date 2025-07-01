@@ -64,7 +64,7 @@
                                           #(contains? #{:html->text :sort-elements-by-text} (first %))
                                           [(s/one s/Keyword "extractor type")])]
    :email-notification {:to (s/conditional (every-pred vector? not-empty) [s/Str])
-                        :format (s/enum "old-new" "inline-diff")
+                        :format (s/enum "old-new" "new-only" "inline-diff")
                         (s/optional-key :condition) s/Str}
    (s/optional-key :schedule) s/Str
    :state {:last-check-time (s/maybe s/Int)
