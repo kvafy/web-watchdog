@@ -1,6 +1,6 @@
 (ns web-watchdog.email
   (:require [clojure.string]
-            [hiccup.util :refer [escape-html]]
+            [hiccup.util]
             [integrant.core :as ig]
             [plumula.diff :as pd]
             [postal.core]
@@ -33,6 +33,15 @@
     (format "[Web-watchdog change] %s" (:title site))
     :site-failing
     (format "[Web-watchdog site down] %s" (:title site))))
+
+(defn js-unicode-to-html [s]
+  (clojure.string/replace
+   s
+   #"\\u[0-9a-fA-F]{4}"
+   (fn [match] (str "&#x" (subs match 2) ";"))))
+
+(defn escape-html [s]
+  (-> s hiccup.util/escape-html js-unicode-to-html))
 
 (defn mail-body-html [old-site new-site change-type fmt]
   (condp = change-type
