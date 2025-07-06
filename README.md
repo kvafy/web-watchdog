@@ -91,3 +91,41 @@ Examples:
                        [:html->text]
                        [:regexp "Only \\$([0-9.]+)"]]
   ```
+
+### Advanced request
+
+Web-watchdog supports customizing various properties of the HTTP requests, such
+as the method (GET, POST, ...), setting arbitrary HTTP headers or querying
+a different URL than is the site's "display" URL. This is useful for getting
+data from API end-points. For full capabilities, see the schema of the
+site `:request` field in `state.clj` file.
+
+Examples:
+
+* Status of the Central line from the Transport for London (TfL) offical API:
+  ```
+  # Snippet of the site definition.
+  {:title "TfL Central line status"
+   :url "https://tfl.gov.uk/tube-dlr-overground/status"
+   ...
+   :request
+   {:url "https://api.tfl.gov.uk/Line/central/Disruption",
+    :headers {"Accept" "text/xml"},
+    :retries 3}
+  }
+  ```
+
+* Premium Bonds monthly prize draw via the website's internal JSON API:
+  ```
+  # Snippet of the site definition.
+  {:title "NS&I monthly prize"
+   :url "https://www.nsandi.com/prize-checker"
+   ...
+   :request
+   {:url "https://www.nsandi.com/premium-bonds-have-i-won-ajax",
+    :method "POST",
+    :form-params
+    {"field_premium_bond_period" "this_month",
+     "field_premium_bond_number" "<number>"}}
+  }
+  ```
