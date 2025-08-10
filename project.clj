@@ -13,6 +13,7 @@
                  [com.cronutils/cron-utils "9.2.0"]
                  [com.draines/postal "2.0.5"]
                  [clj-http "3.13.0"]
+                 [cheshire "5.13.0"]
                  [com.taoensso/timbre "6.7.0"]
                  [com.taoensso/timbre-slf4j "6.7.0"]
                  [org.slf4j/slf4j-api "2.0.17"]
@@ -40,7 +41,6 @@
                      [cljsjs/react-dom "18.2.0-1"] ;; required by reagent
                      ]}
      :dev
-      {:dependencies [[cheshire "5.13.0"]
-                      [ring/ring-mock "0.4.0"]]}
+      {:dependencies [[ring/ring-mock "0.4.0"]]}
      :uberjar
      {:aot :all}})

@@ -7,8 +7,18 @@ email notifications when the content changes or site goes down.
 Each website can be checked according to a custom schedule defined with a
 [CRON expression](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/scheduling/support/CronExpression.html#parse(java.lang.String)).
 
-The watched portion of a website content can be narrowed down by CSS and
-XPath selectors, regular expressions, or their arbitrary combinations.
+The watched portion of a website content can be narrowed down by CSS and XPath
+selectors, regular expressions, or their arbitrary combinations. For example,
+you can select the latest item of a list, such as the latest podcast episode or
+blog post.
+
+By default web-watchdog uses [clj-http](https://github.com/dakrone/clj-http) to
+download website contents. However, some websites feature advanced anti-bot
+protections (e.g. sites hosted on CloudFlare) which go beyond checking a few
+HTTP headers. For such sites, web-watchdog can be configured to access them
+using [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr). This is
+configured by specifying `{:request {:client-impl "FlareSolverr"}}` in the site
+config. Learn more [here](./Docker-FlareSolverr.md).
 
 Example use cases:
 
@@ -27,6 +37,8 @@ Used technologies:
 
 * JRE 21+
 * Leiningen (build tool for Clojure)
+* [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) Docker container
+  (optional)
 
 ## Running
 
@@ -42,7 +54,7 @@ Execute the following commands to run web-watchdog:
 
 Open http://localhost:8080 in your browser.
 
-Alternatively, you can install web-watchdog as a _systemd_ service. See the
+Alternatively, you can install web-watchdog as a _System V_ service. See the
 instructions in `scripts/web-watchdog`.
 
 ## Configuration

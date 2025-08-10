@@ -71,5 +71,6 @@
    ;; Value: (fn [site] -> [[ok-body err]])
    ;; Parents: :web-watchdog.system/download-fn
    :web-watchdog.networking/web-downloader ;; ~::download-fn
-   {:cache-ttl-ms (* 10 1000)}
+   {:cache-ttl-ms (* 10 1000)
+    :flaresolverr-port 8191}
    })

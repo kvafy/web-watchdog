@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+### BEGIN INIT INFO
+# Provides:          flaresolverr
+# Required-Start:    $local_fs $network $remote_fs $syslog docker.io
+# Required-Stop:     $local_fs $network $remote_fs $syslog docker.io
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Website checker
+# Description: Local web proxy that can circumvent various anti-bot protections.
+### END INIT INFO
+
+# Install (tested on Ubuntu):
+#  - Configure the variables further down marked with "TODO".
+#
+#  - Copy the modified script into /etc/init.d:
+#      $ sudo cp scripts/flaresolverr /etc/init.d/flaresolverr
+#      $ sudo chmod +x /etc/init.d/flaresolverr
+#
+#  - Register the new service:
+#      $ sudo update-rc.d flaresolverr defaults
+#
+#  - Now flaresolverr will be automatically started when then system boots.
+#    Restart the system and verify that FlareSolverr is indeed running:
+#      $ curl http://localhost:8191/
+#    You can also start/stop manually by running:
+#      $ sudo service flaresolverr start
+#      $ sudo service flaresolverr stop
+#
+#  - Add flaresolverr into Required-Start/Required-Stop sections of the
+#    /etc/init.d/web-watchdog
+
+# TODO(fill-me-in): The user running web-watchdog.
+USER="TODO"
+
+RUN_AS_USER="sudo -u ${USER} --preserve-env"
+
+case "$1" in
+  start)
+    echo "Starting Service"
+    ${RUN_AS_USER} docker start flaresolverr
+    ;;
+  stop)
+    echo "Stopping Service"
+    ${RUN_AS_USER} docker stop flaresolverr
+    ;;
+  restart)
+    echo "Restarting Service"
+    $0 stop
+    $0 start
+    ;;
+  *)
+    echo "Usage: /etc/init.d/flaresolverr {start|stop|restart}"
+    exit 1
+    ;;
+esac

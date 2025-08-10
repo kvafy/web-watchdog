@@ -3,6 +3,9 @@
 * Added UI action "Use as template" to trigger a site creation dialog pre-populated with properties
   of the given existing site.
 * Added new email notification format `"new-only"`.
+* Support downloading URL contents using [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr)
+  to circumvent CloudFlare's protections. This is configured via new site property
+  `[:request {:client-impl "FlareSolverr}]`.
 
 ## 0.3.1
 

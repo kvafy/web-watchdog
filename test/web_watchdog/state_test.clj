@@ -60,6 +60,12 @@
       (doseq [invalid [:only-strings 1]]
         (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {"ok" invalid}}))
         (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:headers {invalid "ok"}}))))
+    (testing "site > :request > valid :client-impl values, passes"
+      (doseq [val ["clj-http" "FlareSolverr"]]
+        (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:client-impl val}))))
+    (testing "site > :request > invalid :client-impl values, throws"
+      (doseq [val ["default" "something"]]
+        (throws-for-updated-config #(assoc-in % [:sites 0 :request] {:client-impl val}))))
     (testing "site > :request > valid :retries, passes"
       (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:retries 0}))
       (passes-for-updated-config #(assoc-in % [:sites 0 :request] {:retries 3})))

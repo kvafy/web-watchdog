@@ -56,6 +56,7 @@
                               (s/optional-key :query-params)   {s/Str s/Str}
                               (s/optional-key :form-params)    {s/Str s/Str}
                               (s/optional-key :headers)        {s/Str s/Str}
+                              (s/optional-key :client-impl)    (s/enum "clj-http" "FlareSolverr")
                               (s/optional-key :retries)        s/Int
                               (s/optional-key :allow-insecure) s/Bool}
    (s/optional-key :content-extractors) [(s/conditional
