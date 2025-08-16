@@ -60,12 +60,15 @@
    {:app-state (ig/ref ::app-state),
     :email-sender (ig/ref ::email-sender)}
 
-   ;; Description: Gmail email sender.
+   ;; Description: SMTP email sender.
    ;; Resolved value: web-watchdog.email/EmailSender
    ;; Value: {:impl <of web-watchdog.email/EmailSender>}
    ;; Parents: :web-watchdog.system/email-sender
-   :web-watchdog.email/gmail-sender ;; ~ ::email-sender
-   {}
+   :web-watchdog.email/smtp-sender ;; ~ ::email-sender
+   {:user (System/getenv "SMTP_USER")
+    :password (System/getenv "SMTP_PASSWORD")
+    :host (System/getenv "SMTP_HOST")
+    :from (System/getenv "SMTP_FROM")}
 
    ;; Description: Downloader of websites (as a component for mocking).
    ;; Value: (fn [site] -> [[ok-body err]])

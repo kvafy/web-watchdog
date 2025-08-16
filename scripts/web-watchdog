@@ -15,9 +15,11 @@
 #      $ sudo cp scripts/web-watchdog /etc/init.d/web-watchdog
 #      $ sudo chmod +x /etc/init.d/web-watchdog
 #  - In the $APP_DIR (see below) create a "set-up-env-secrets.sh" file that
-#    exports environment variables for your SMTP (username, password):
-#      export MAILER_USER="...@gmail.com"
-#      export MAILER_PASSWORD="..."
+#    exports environment variables for your SMTP server:
+#      export SMTP_HOST="..."
+#      export SMTP_FROM="mailer@your-domain.com"
+#      export SMTP_USER="..."
+#      export SMTP_PASSWORD="..."
 #  - Register the new service:
 #      $ sudo update-rc.d web-watchdog defaults
 #  - Now web-watchdog will be automatically started when then system boots.

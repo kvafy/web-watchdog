@@ -100,27 +100,23 @@
   "Abstraction for sending emails"
   (send-email [this to subject body-html]))
 
-(defrecord GmailEmailSender []
+(defrecord SmtpEmailSender [cfg]
   EmailSender
   (send-email [this to subject body-html]
     (postal.core/send-message
-     {:host "smtp.gmail.com"
-      :user (System/getenv "MAILER_USER")
-      :pass (System/getenv "MAILER_PASSWORD")
-      :port 587
-      :tls true}
-     {:from "mailer@webwatchdog.com"
+     {:host (:host cfg), :user (:user cfg), :pass (:password cfg), :port 465, :tls true}
+     {:from (:from cfg)
       :to to
       :subject subject
-      :body [{:type "text/html; charset=utf-8"
-              :content body-html}]})))
+      :body [{:type "text/html; charset=utf-8", :content body-html}]})))
 
-(derive ::gmail-sender :web-watchdog.system/email-sender)
+(derive ::smtp-sender :web-watchdog.system/email-sender)
 
-(defmethod ig/init-key ::gmail-sender [_ _]
-  {:impl (->GmailEmailSender)})
+(defmethod ig/init-key ::smtp-sender [_ deps]
+  (let [cfg (select-keys deps [:user :password :host :from])]
+    {:impl (->SmtpEmailSender cfg)}))
 
-(defmethod ig/resolve-key ::gmail-sender [_ {:keys [impl]}]
+(defmethod ig/resolve-key ::smtp-sender [_ {:keys [impl]}]
   impl)
 
 

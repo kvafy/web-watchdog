@@ -151,6 +151,6 @@
    (with-fake-email-sender system-cfg {:verbose false}))
   ([system-cfg opts]
    (-> system-cfg
-       (dissoc :web-watchdog.email/gmail-sender)
+       (dissoc :web-watchdog.email/smtp-sender)
        (assert-system-modified system-cfg)
        (assoc  ::fake-email-sender opts))))
