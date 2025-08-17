@@ -44,13 +44,15 @@ Used technologies:
 
 Execute the following commands to run web-watchdog:
 
-    ```
-    export MAILER_USER=<gmail-account>
-    export MAILER_PASSWORD=<app-password>
+```
+export SMTP_HOST="..."
+export SMTP_FROM="mailer@your-domain.com"
+export SMTP_USER="..."
+export SMTP_PASSWORD="..."
 
-    lein do clean, cljsbuild once, uberjar
-    java -jar target/web-watchdog-*-standalone.jar
-    ```
+lein do clean, cljsbuild once, uberjar
+java -jar target/web-watchdog-*-standalone.jar
+```
 
 Open http://localhost:8080 in your browser.
 
