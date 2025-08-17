@@ -104,7 +104,7 @@
   EmailSender
   (send-email [this to subject body-html]
     (postal.core/send-message
-     {:host (:host cfg), :user (:user cfg), :pass (:password cfg), :port 465, :tls true}
+     {:host (:host cfg), :user (:user cfg), :pass (:password cfg), :port 465, :ssl true}
      {:from (:from cfg)
       :to to
       :subject subject
