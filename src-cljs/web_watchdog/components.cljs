@@ -4,6 +4,7 @@
             [clojure.string]
             [reagent.core]
             [reagent.dom.server]
+            [web-watchdog.common-utils :refer [to-safe-html]]
             [web-watchdog.state :as state]
             [web-watchdog.utils :as utils]))
 
@@ -104,7 +105,7 @@
    (when-let [content-snippet (get-in s [:state :content-snippet])]
      [:div.tooltip-section
       [:div.tooltip-key "Last successful content"]
-      [:div.tooltip-value [:span.monospace content-snippet]]])])
+      [:div.tooltip-value [:span.monospace {:dangerouslySetInnerHTML {:__html (to-safe-html content-snippet)}}]]])])
 
 (defn site [s edit-dialog-model-atom]
   (let [fails         (-> s :state :fail-counter)
@@ -315,8 +316,8 @@
             "Save"]]
           (let [{:keys [success error]} @state-atom]
             (when (some? (or success error))
-              [:div.alert {:class (str "alert " (if success "alert-success" "alert-danger"))}
-               (or success error)]))]]]])))
+              [:div.alert {:class (str "alert " (if success "alert-success" "alert-danger"))
+                           :dangerouslySetInnerHTML {:__html (to-safe-html (or success error))}}]))]]]])))
 
 (defn sites [add-or-edit-site-dialog-model-atom]
   [:div {:class "col-xs-12"}

@@ -86,7 +86,7 @@
       (let [request (build-request (build-site "Test site"))
             response (app-with-ok-download request)]
         (is (= 200 (:status response)))
-        (is (clojure.string/starts-with? (:body response) "Extracted content: "))))
+        (is (= "Fake site content" (:body response)))))
     (testing "well-formed site request and failing download"
       (let [request (build-request (build-site "Test site"))
             response (app-with-failing-download request)]

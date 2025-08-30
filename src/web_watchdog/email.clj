@@ -1,9 +1,9 @@
 (ns web-watchdog.email
   (:require [clojure.string]
-            [hiccup.util]
             [integrant.core :as ig]
             [plumula.diff :as pd]
             [postal.core]
+            [web-watchdog.common-utils :refer [to-safe-html]]
             [web-watchdog.conditions :as conditions]
             [web-watchdog.core :as core]
             [web-watchdog.logging :as logging :refer [logd logw]]
@@ -16,13 +16,20 @@
    all middle diffs trimmed to 'prefix...suffix' and the last diff to 'prefix...'."
   [limit diffs]
   (let [last-idx (dec (count diffs))]
-    (mapv (fn [idx diff]
-            (if (not= ::pd/equal (::pd/operation diff))
-              diff  ;; Don't trim insert/delete snippets.
-              (let [mode (cond (= 0 idx) :left, (= last-idx idx) :right, :else :middle)]
-                (update diff ::pd/text utils/trim mode limit))))
-          (range)
-          diffs)))
+    (map-indexed
+     (fn [idx diff]
+       (let [mode (cond (= 0 idx) :left, (= last-idx idx) :right, :else :middle)]
+         (cond
+           ;; Don't trim insert/delete snippets.
+           (not= ::pd/equal (::pd/operation diff))
+           diff
+           ;; If multi-line, perform a line-based trim.
+           (< 1 (->> diff ::pd/text utils/split-all-lines count))
+           (update diff ::pd/text utils/trim-lines mode)
+           ;; Otherwise, trim as text.
+           :else
+           (update diff ::pd/text utils/trim-text mode limit))))
+     diffs)))
 
 
 ;; Generic crafting of email contents.
@@ -33,15 +40,6 @@
     (format "[Web-watchdog change] %s" (:title site))
     :site-failing
     (format "[Web-watchdog site down] %s" (:title site))))
-
-(defn js-unicode-to-html [s]
-  (clojure.string/replace
-   s
-   #"\\u[0-9a-fA-F]{4}"
-   (fn [match] (str "&#x" (subs match 2) ";"))))
-
-(defn escape-html [s]
-  (-> s hiccup.util/escape-html js-unicode-to-html))
 
 (defn mail-body-html [old-site new-site change-type fmt]
   (condp = change-type
@@ -58,18 +56,18 @@
          "<body>"
          (format "<p>The content at <a href='%s'>%s</a> has changed.</p>"
                  (:url new-site)
-                 (-> new-site :title escape-html))
+                 (-> new-site :title to-safe-html))
          (case fmt
            "new-only"
            (format "<p>New content: <span class='content'>%s</span></p>"
-                   (-> new-site :state :content-snippet escape-html))
+                   (-> new-site :state :content-snippet to-safe-html))
            "old-new"
            (str
             (format "<p>Previous content (from %s): <span class='content'>%s</span></p>"
                     (-> old-site :state :last-change-time utils/epoch->now-aware-str)
-                    (-> old-site :state :content-snippet escape-html))
+                    (-> old-site :state :content-snippet to-safe-html))
             (format "<p>New content: <span class='content'>%s</span></p>"
-                    (-> new-site :state :content-snippet escape-html)))
+                    (-> new-site :state :content-snippet to-safe-html)))
            "inline-diff"
            (let [old-content (get-in old-site [:state :content-snippet])
                  new-content (get-in new-site [:state :content-snippet])
@@ -78,7 +76,7 @@
                                            ::pd/insert "class='diff-insert'"
                                            ::pd/delete "class='diff-delete'"
                                            "")]
-                                (str "<span " attr "'>" (-> diff ::pd/text escape-html) "</span>")))]
+                                (str "<span " attr ">" (-> diff ::pd/text to-safe-html) "</span>")))]
              (as-> (pd/diff old-content new-content ::pd/cleanup ::pd/cleanup-semantic) $
                (trim-diffs 50 $)
                (mapv diff->html $)
@@ -89,7 +87,7 @@
     :site-failing
     (str "<html>"
          "<body>"
-         "<p>" (format "Site <a href='%s'>%s</a> is failing." (:url new-site) (-> new-site :title escape-html)) "</p>"
+         "<p>" (format "Site <a href='%s'>%s</a> is failing." (:url new-site) (-> new-site :title to-safe-html)) "</p>"
          "</body>"
          "</html>")))
 

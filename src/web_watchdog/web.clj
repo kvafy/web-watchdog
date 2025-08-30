@@ -81,7 +81,7 @@
            _ (logd "Processing request to test site: %s" site-req)
            [site-content error] (core/test-site site-req download-fn)]
        (if site-content
-         (response/response (str "Extracted content: " site-content))
+         (response/response site-content)
          (response/bad-request error))))
    (POST "/sites/:site-id/refresh" [site-id]
      (let [site-exists? (scheduling/make-site-due-now! app-state site-id)]

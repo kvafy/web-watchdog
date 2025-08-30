@@ -1,5 +1,6 @@
 (ns web-watchdog.core
   (:require [clojure.set]
+            [clojure.string]
             [web-watchdog.state :as state]
             [web-watchdog.utils :as utils])
   (:import [org.jsoup Jsoup]))
@@ -17,7 +18,7 @@
   (cond
     (instance? java.lang.String x) x
     (instance? org.jsoup.nodes.Element x) (.text x)
-    (instance? org.jsoup.select.Elements x) (.text x)
+    (instance? org.jsoup.select.Elements x) (->> x (.eachText) (clojure.string/join "\n"))
     :else (throw (IllegalArgumentException. (format "Cannot handle value of type %s" (type x))))))
 
 (defn assert-elements [x]

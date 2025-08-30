@@ -1,4 +1,32 @@
-(ns web-watchdog.common-utils)
+(ns web-watchdog.common-utils
+  (:require [clojure.string]))
+
+;; HTML escaping and pretty-printing.
+
+(defn escape-html
+  "Change special characters into HTML character entities."
+  [text]
+  (.. text
+      (replace "&"  "&amp;")
+      (replace "<"  "&lt;")
+      (replace ">"  "&gt;")
+      (replace "\"" "&quot;")
+      (replace "'" "&apos;")))
+
+(defn- js-unicode-to-html [s]
+  (clojure.string/replace
+   s
+   #"\\u[0-9a-fA-F]{4}"
+   (fn [match] (str "&#x" (subs match 2) ";"))))
+
+(defn- preserve-newlines-html [s]
+  (clojure.string/replace s #"\n" "<br/>"))
+
+(defn to-safe-html [x]
+  (-> x (or "") escape-html js-unicode-to-html preserve-newlines-html))
+
+
+;; Keyword-related functions.
 
 (defn keywords-to-strings [m]
   (into {} (map (fn [[k v]]

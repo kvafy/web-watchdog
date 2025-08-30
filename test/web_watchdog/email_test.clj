@@ -1,5 +1,6 @@
 (ns web-watchdog.email-test
-  (:require [web-watchdog.state :refer [default-state]]
+  (:require [clojure.string]
+            [web-watchdog.state :refer [default-state]]
             [web-watchdog.email :refer [EmailSender mail-body-html notify-about-site-changes!]]
             [web-watchdog.test-utils :refer [build-site set-sites site-emails]]
             [clojure.test :refer [deftest is testing]]))
@@ -19,7 +20,15 @@
         (is (thrown? IllegalArgumentException
                      (mail-body-html old-site new-site valid-change-type "unknown-format")))
         (is (thrown? IllegalArgumentException
-                     (mail-body-html old-site new-site :unknown-change-type valid-fmt)))))))
+                     (mail-body-html old-site new-site :unknown-change-type valid-fmt)))))
+    (testing "not XSS vulnerable"
+      (let [xss-site (build-site "a" {:state {:content-snippet "<script>...</script>", :last-change-time 0
+                                              :last-error-msg  "<script>...</script>", :last-error-time 0}})]
+        (doseq [fmt valid-formats]
+          (let [body-change (mail-body-html old-site xss-site :content-changed fmt)]
+            (is (not (clojure.string/includes? body-change "<script>"))))
+          (let [body-fail (mail-body-html old-site xss-site :site-failing fmt)]
+            (is (not (clojure.string/includes? body-fail "<script>")))))))))
 
 (deftest notify-about-site-changes!-test
   (let [sent-emails (atom #{})

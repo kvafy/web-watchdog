@@ -1,5 +1,15 @@
 ## 0.3.2
 
+* Put text of each matched element onto its own line. Up until now, if CSS or XPath selector
+  resulted in matching multiple HTML elements (i.e. `org.jsoup.select.Elements`), web-watchdog
+  would extract their overall content simply by calling the `Elements.text()` which removes all
+  newlines and results in one large "single-line" text blob.
+  It turns out that it is more useful to consider each of the top-level matched elements to be one
+  line of text and report the content in email notifications and other places as such. This change
+  makes it so.
+
+## 0.3.2
+
 * Added UI action "Use as template" to trigger a site creation dialog pre-populated with properties
   of the given existing site.
 * Added new email notification format `"new-only"`.

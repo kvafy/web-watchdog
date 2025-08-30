@@ -1,5 +1,6 @@
 (ns web-watchdog.utils
-  (:require [clojure.core.async :as async :refer [<!, >!]])
+  (:require [clojure.core.async :as async :refer [<!, >!]]
+            [clojure.string])
   (:import [java.nio.charset StandardCharsets]
            [java.time Instant ZoneId]
            [java.time.format DateTimeFormatter]
@@ -104,7 +105,12 @@
             (insert-cache! args new-entry)
             (unwrap-entry new-entry)))))))
 
-(defn trim
+(defn split-all-lines
+  "Splits on newlines, returning all lines, including empty ones."
+  [s]
+  (clojure.string/split s #"\r?\n" -1))
+
+(defn trim-text
   "Trims the 'text' to be at most 'limit' characters long, inserting '...'
    placeholder for the omitted portion. 'mode' is one of :left, :middle ,:right."
   [text mode limit]
@@ -125,6 +131,21 @@
                                               [start (+ start len-to-drop)])
                                     :right  [(- text-len len-to-drop) text-len])]
         (str (subs text 0 trim-start) "..." (subs text trim-end text-len))))))
+
+(defn trim-lines [text mode]
+  (let [lines (split-all-lines text)
+        ;; If the first or last line is empty, merge it with the adjacent line before trimming.
+        lines (if (-> lines first empty?)
+                (concat (->> lines (take 2) (clojure.string/join "\n") vector) (drop 2 lines))
+                lines)
+        lines (if (-> lines last empty?)
+                (concat (drop-last 2 lines) (->> lines (take-last 2) (clojure.string/join "\n") vector))
+                lines)
+        cnt (count lines)]
+    (case mode
+      :left   (if (<= cnt 1) text (str "..." "\n" (last lines)))
+      :middle (if (<= cnt 2) text (str (first lines) "\n" "..." "\n" (last lines)))
+      :right  (if (<= cnt 1) text (str (first lines) "\n" "...")))))
 
 (defn truncate-at-max
   "Ensure that a string is no longer that the limit"

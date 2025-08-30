@@ -68,7 +68,7 @@
              (core/extract-content html-doc [[:css "#outer"] [:css "#inner"]])))))
   (let [table-321 "<table> <tr><td>3</td></tr> <tr><td>2</td></tr> <tr><td>1</td></tr> </table>"]
     (testing "extractor chain with sorting"
-      (is (= "1 2 3"
+      (is (= "1\n2\n3"
              (core/extract-content table-321 [[:css "td"] [:sort-elements-by-text]]))))))
 
 
