@@ -1,3 +1,7 @@
+## 0.3.3
+
+* Rows of the "Checked sites" UI table can be re-ordered using HTML5 drag-and-drop.
+
 ## 0.3.2
 
 * Put text of each matched element onto its own line. Up until now, if CSS or XPath selector

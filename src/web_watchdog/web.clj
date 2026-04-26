@@ -1,5 +1,5 @@
 (ns web-watchdog.web
-  (:require [compojure.core :refer [routes GET DELETE POST PUT]]
+  (:require [compojure.core :refer [routes GET DELETE POST PATCH PUT]]
             [compojure.route :as route]
             [integrant.core :as ig]
             [ring.adapter.jetty :refer [run-jetty]]
@@ -86,6 +86,19 @@
    (POST "/sites/:site-id/refresh" [site-id]
      (let [site-exists? (scheduling/make-site-due-now! app-state site-id)]
        (response/status (if site-exists? 200 404))))
+   (PATCH "/sites/drag-and-drop-reorder" req
+     (let [reorder-req (-> req :body)
+           {:keys [src-id dst-id]} reorder-req]
+       (logd "Processing request to reorder sites: %s" reorder-req)
+       (try
+         (swap! app-state (fn [cur-state]
+                            (let [new-state (core/reorder-site cur-state src-id dst-id)]
+                              (state/validate new-state)
+                              new-state)))
+         (response/status 200)
+         (catch Exception e
+           (logw e "Reorder site failed, request: %s" reorder-req)
+           (response/bad-request (.getMessage e))))))
    ; Serve all static resources (HTML, CSS, JavaScript).
    (route/files "resources")
    (route/not-found "Not Found")))

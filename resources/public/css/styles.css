@@ -35,6 +35,14 @@ body {
   opacity: 0.7;
 }
 
+.drag-src {
+  opacity: 0.2;
+  outline-color: inherit;
+}
+.drag-dst {
+  outline: 2px dashed #e0f0ff;
+}
+
 .popover {
   max-width: 80% !important; /* Relative to the table of checked sites. */
 }

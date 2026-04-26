@@ -68,6 +68,13 @@
    (clj->js {:url (str "sites/" site-id)
              :method "DELETE"})))
 
+(defn request-reorder-sites! [src-id dst-id]
+  (js/jQuery.ajax
+   (clj->js {:url "/sites/drag-and-drop-reorder"
+             :method "PATCH"
+             :data (-> {:src-id src-id :dst-id dst-id} clj->js js/JSON.stringify)
+             :contentType "application/json; charset=UTF-8"})))
+
 (defn configuration []
   [:div {:class "col-xs-12"}
    [:h1 "Global configuration"]
@@ -107,7 +114,7 @@
       [:div.tooltip-key "Last successful content"]
       [:div.tooltip-value [:span.monospace {:dangerouslySetInnerHTML {:__html (to-safe-html content-snippet)}}]]])])
 
-(defn site [s edit-dialog-model-atom]
+(defn site [s row-drag-atom edit-dialog-model-atom]
   (let [fails         (-> s :state :fail-counter)
         content-hash  (-> s :state :content-hash)
         ongoing-check (-> s :state :ongoing-check)
@@ -134,7 +141,20 @@
                        :data-placement   "bottom"
                        ; Works together with `.popover {max-width: ...}` CSS.
                        :data-container   "#sites-table"}]
-    [:tr {:class (:tr-class status)}
+    [:tr {;; Reorder rows using drag-and-drop with HTML5.
+          :draggable true
+          :class (cond (-> @row-drag-atom :src-id (= (:id s))) "drag-src"
+                       (-> @row-drag-atom :dst-id (= (:id s))) "drag-dst"
+                       :else "")
+          :on-drag-start #(reset! row-drag-atom {:src-id (:id s)})
+          :on-drag-enter #(swap! row-drag-atom assoc :dst-id (:id s))
+          :on-drag-over  (fn [e] (.preventDefault e))
+          :on-drop       (fn [e]
+                           (.preventDefault e)
+                           (let [{:keys [src-id dst-id]} @row-drag-atom]
+                             (when (not= src-id dst-id)
+                               (request-reorder-sites! src-id dst-id))))
+          :on-drag-end   #(reset! row-drag-atom nil)}
      [:td popover-props [favicon-for-url (:url s)]]
      [:td popover-props
       [:a {:class "link-light" :href (:url s), :target "_blank"} (:title s)]]
@@ -335,8 +355,9 @@
       [:th "Status"]
       [:th #_"drop-down menu"]]]
     [:tbody
-     (for [s (-> @state/app-state :sites)]
-       ^{:key (:id s)} [site s add-or-edit-site-dialog-model-atom])]]])
+     (let [row-drag-atom (reagent.core/atom nil)]
+       (for [s (-> @state/app-state :sites)]
+         ^{:key (:id s)} [site s row-drag-atom add-or-edit-site-dialog-model-atom]))]]])
 
 (defn content []
   (let [add-or-edit-site-dialog-model (reagent.core/atom {})]

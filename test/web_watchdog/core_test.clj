@@ -323,6 +323,28 @@
         (is (= (:sites without-B) [site-A site-C]))
         (is (= (:sites without-C) [site-A site-B]))))))
 
+(deftest reorder-site-test
+  (let [site-A (build-site "A")
+        site-B (build-site "B")
+        site-C (build-site "C")
+        site-D (build-site "D")
+        initial-state (set-sites default-state [site-A site-B site-C site-D])]
+    (testing "unknown site id, throws"
+      (is (thrown? IllegalArgumentException (core/reorder-site initial-state (:id site-A) "unknown-id")))
+      (is (thrown? IllegalArgumentException (core/reorder-site initial-state "unknown-id" (:id site-A)))))
+    (testing "same source and destination, no change"
+      (let [new-state (core/reorder-site initial-state (:id site-A) (:id site-A))]
+        (is (= (:sites initial-state) (:sites new-state)))))
+    (testing "legal site moves"
+      (let [state-B->A (core/reorder-site initial-state (:id site-B) (:id site-A))
+            state-D->A (core/reorder-site initial-state (:id site-D) (:id site-A))
+            state-A->D (core/reorder-site initial-state (:id site-A) (:id site-D))
+            state-A->C (core/reorder-site initial-state (:id site-A) (:id site-C))]
+        (is (= (:sites state-B->A) [site-B site-A site-C site-D]))
+        (is (= (:sites state-D->A) [site-D site-A site-B site-C]))
+        (is (= (:sites state-A->D) [site-B site-C site-D site-A]))
+        (is (= (:sites state-A->C) [site-B site-C site-A site-D]))))))
+
 (deftest test-site-test
   (let [min-request {:title "Title", :url "https://site.com", :email-notification {:to ["me@g.com"], :format "old-new"}}
         ok-download-fn (succeeding-download "Fake site content")

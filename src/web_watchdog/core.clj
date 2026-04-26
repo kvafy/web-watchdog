@@ -109,6 +109,12 @@
 
 ;; Handling web requests related to sites.
 
+(defn move-to-idx [coll src-idx dst-idx]
+  (let [[old-prefix [item & old-suffix]] (split-at src-idx coll)
+        without (vec (concat old-prefix old-suffix))
+        [new-prefix new-suffix] (split-at dst-idx without)]
+    (vec (concat new-prefix [item] new-suffix))))
+
 ;; Required and optional keys of a site request.
 (def site-req-required-keys #{:title :url :email-notification})
 (def site-req-optional-keys #{:request :content-extractors :schedule})
@@ -148,6 +154,18 @@
     (when (= app-state new-app-state)
       (throw (IllegalArgumentException. (format "Site with id '%s' not found." site-id))))
     new-app-state))
+
+(defn reorder-site [app-state src-id dst-id]
+  (let [[src-idx _] (find-site-by-id app-state src-id)
+        [dst-idx _] (find-site-by-id app-state dst-id)] 
+    (cond (= src-id dst-id)
+          app-state
+          (not src-idx)
+          (throw (IllegalArgumentException. (str "Site with ID wasn't found: " src-id)))
+          (not dst-idx)
+          (throw (IllegalArgumentException. (str "Site with ID wasn't found: " dst-idx)))
+          :else
+          (update-in app-state [:sites] move-to-idx src-idx dst-idx))))
 
 (defn test-site
   "Simulates the outcome of checking the requested site.
