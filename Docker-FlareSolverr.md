@@ -44,6 +44,9 @@ docker stop flaresolverr
 
 # Remove the `flaresolverr` alias and allow re-defining it again.
 docker rm flaresolverr
+
+# Pull new version of the image.
+docker pull ghcr.io/flaresolverr/flaresolverr:latest
 ```
 
 Final step is to install FlareSolverr as a System V service and ensure that it
