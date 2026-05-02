@@ -32,7 +32,7 @@
      (clj->js {:url (case operation
                       :create "sites"
                       :update (str "sites/" (:id site)))
-               :method "PUT"
+               :method (case operation :create "POST" :update "PUT")
                :data (-> site (select-keys keys-to-send) clj->js js/JSON.stringify)
                :contentType "application/json; charset=UTF-8"
                :success (fn [res]

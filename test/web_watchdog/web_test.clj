@@ -24,7 +24,7 @@
         (is (= 200 (:status response)))
         (is (= @app-state (cheshire/parse-string (:body response) true)))))
     (testing "create site (invalid request)"
-      (let [request (-> (mock/request :put "/sites") (mock/json-body {}))
+      (let [request (-> (mock/request :post "/sites") (mock/json-body {}))
             response (app request)]
         (is (= 400 (:status response)))))
     (testing "update site (invalid request)"

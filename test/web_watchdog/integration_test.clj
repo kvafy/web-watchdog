@@ -54,11 +54,11 @@
       (assoc-in [:state :last-check-time] 0)
       (assoc-in [:state :next-check-time] 1)))
 
-(defn http-put-json [path port data]
-  (http/put (str "http://localhost:" port path)
-            {:body (cheshire/encode data)
-             :headers {:content-type "application/json"}
-             :throw-exceptions false}))
+(defn http-post-json [path port data]
+  (http/post (str "http://localhost:" port path)
+             {:body (cheshire/encode data)
+              :headers {:content-type "application/json"}
+              :throw-exceptions false}))
 
 (defn http-connect-sse [url events-coll-atom]
   (let [parse-line (fn [line]
@@ -156,7 +156,7 @@
         (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)]
           (let [app-state-before @app-state-atom
                 req {}
-                resp (http-put-json "/sites" server-port req)
+                resp (http-post-json "/sites" server-port req)
                 app-state-after @app-state-atom]
             (is (= 400 (:status resp)))
             (is (= app-state-before app-state-after))))))
@@ -164,7 +164,7 @@
       (with-system [sut test-system-cfg :only-keys [:web-watchdog.web/server]]
         (let [app-state-atom (-> sut ::test-utils/in-memory-app-state)]
           (let [req {:title "New site", :url "https://site.io", :email-notification {:to ["me@gmail.com"] :format "old-new"}}
-                resp (http-put-json "/sites" server-port req)
+                resp (http-post-json "/sites" server-port req)
                 app-state-after @app-state-atom]
             (is (= 200 (:status resp)))
             (assert-app-state-conforms-to-schema app-state-after)

@@ -41,7 +41,7 @@
    (GET "/sse/state-changes" []
      sse-handler)
    ; REST actions on sites
-   (PUT "/sites" req
+   (POST "/sites" req
      (let [site-req (-> req :body preprocess-site)]
        (logd "Processing request to create site: %s" site-req)
        (try
